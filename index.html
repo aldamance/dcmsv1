@@ -1,0 +1,1182 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DENR-CENRO Diffun — Digital Client Monitoring System</title>
+  <link rel="icon" href="assets/denrlogo.png" type="image/svg+xml" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <style>
+    :root{
+      --green-900:#08331a;
+      --green-700:#0b6137;
+      --muted:#6b7280;
+      --bg:#f7f9fb;
+      --card:#ffffff;
+      --radius:12px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#f7fbf7 0%, #f7f9fb 100%);color:#0f172a}
+
+    .app{display:flex;min-height:100vh}
+    .sidebar{
+      width:280px;background:var(--green-900);color:white;padding:20px 16px;display:flex;flex-direction:column;gap:20px;transition:width .25s ease;
+      box-shadow:0 6px 18px rgba(3,10,7,0.15);
+      flex-shrink: 0; /* Ensures sidebar doesn't shrink until media query is hit */
+    }
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .brand h1,.brand p{font-size:15px;margin:0}
+    .brand p{margin:0;font-size:11px;opacity:.92}
+
+    nav{display:flex;flex-direction:column;gap:8px}
+    .nav-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;cursor:pointer;transition:background .18s, transform .08s;user-select:none}
+    .nav-item:hover{background:rgba(255,255,255,0.06);transform:translateX(4px)}
+    .nav-item.active{background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))}
+    .nav-item svg{opacity:.95}
+
+    .content{flex:1;padding:28px; min-width: 0;} /* Added min-width: 0 for proper flex behavior on mobile */
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+    .title{font-size:18px;font-weight:700}
+    .subtitle{color:var(--muted);font-size:13px}
+
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:0 6px 20px rgba(16,24,40,0.06);}
+
+    /* MODERN DIGITAL CLOCK STYLES */
+    #realtime-datetime {
+      text-align: center;
+      /* Use a monospace-like font for the digital look */
+      font-family: 'Inter', 'DSEG7 Classic', monospace; 
+      font-size: 24px; /* Slightly larger for visibility */
+      font-weight: 700;
+      color: var(--green-900); /* Use a dark color for contrast */
+      margin-bottom: 20px; /* More space */
+      padding: 10px 15px;
+      background-color: #e2e8f0; /* Light, soft background */
+      border-radius: 8px;
+      letter-spacing: 1px; /* Spacing for the digital look */
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+      /* New properties to structure the date and time */
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Style for the time part */
+    .time-display {
+        font-size: 38px; /* Prominent time */
+        color: var(--green-700); 
+        font-weight: 900;
+    }
+
+    /* Style for the date and day part */
+    .date-display {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-top: 4px;
+    }
+    /* END MODERN DIGITAL CLOCK STYLES */
+    
+    form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    label{
+      display:block;
+      font-size:13px;
+      color:var(--muted);
+      margin-bottom:6px;
+      font-weight: bold;
+    }
+    input,select,textarea {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #a0a0a0;
+      background: transparent;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+    textarea{min-height:60px;resize:vertical}
+    .full{grid-column:1/-1}
+    
+    .name-group {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      grid-column: 1 / -1;
+    }
+
+    .address-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      grid-column: 1 / -1;
+    }
+    
+    .actions{display:flex;gap:10px;justify-content:center;margin-top:8px}
+    button{
+        padding:10px 14px;
+        border-radius:10px;
+        border:0;
+        background:var(--green-700);
+        color:white;
+        font-weight:600;
+        cursor:pointer;
+        transition:transform .12s, box-shadow .12s, background-color .12s;
+    }
+    button:hover {
+        background-color: #0c7340;
+        box-shadow: 0 4px 12px rgba(11, 97, 55, 0.2);
+    }
+    button.secondary{
+        background:transparent;
+        color:var(--green-700);
+        border:1px solid rgba(11,97,55,0.12);
+    }
+    button.secondary:hover {
+        background: rgba(11,97,55,0.05);
+        box-shadow: none;
+    }
+    button:active{transform:translateY(1px)}
+
+    /* NEW: Style for the loading state of the submit button */
+    button.loading {
+        pointer-events: none; /* Crucial for preventing double clicks */
+        opacity: 0.7;
+        cursor: wait;
+    }
+
+    /* NEW: Style for Radio Button Groups */
+    .radio-group{
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-top: 4px;
+        font-size: 14px; 
+    }
+    .radio-group input[type="radio"] {
+        width: auto; 
+        margin-right: 5px;
+        cursor: pointer;
+        padding: 0;
+        border: none;
+        background: none;
+    }
+    .radio-group label{
+        display: inline; 
+        font-weight: normal; 
+        color: #0f172a; 
+        cursor: pointer;
+    }
+    .radio-group input[type="radio"]:focus + label {
+        outline: 2px solid var(--green-700);
+        outline-offset: 2px;
+        border-radius: 4px;
+    }
+
+
+    /* --- Table Styles for Modernization --- */
+    #clientListContainer { overflow-x: auto; }
+    table{width:100%;border-collapse:collapse;margin-top:12px;min-width: 700px;} 
+    thead th{text-align:left;padding:12px 8px;color:var(--muted);font-size:13px;border-bottom:1px solid #eef5f7}
+    tbody td{padding:12px 8px;border-bottom:1px solid #fbfcfd; font-size: 14px;}
+    
+    /* New Detail Row Style */
+    .detail-row td {
+        background: #fcfdfe;
+        padding: 0;
+        border-bottom: 1px solid #eef5f7;
+    }
+    .detail-content {
+        padding: 12px 18px;
+        font-size: 13px;
+        line-height: 1.6;
+        color: #333;
+    }
+    .detail-content strong { color: var(--green-700); }
+    .detail-row.hidden { display: none; }
+    
+    .muted{color:var(--muted)}
+    .row{display:flex;gap:12px;align-items:center}
+
+    /* Search Bar Style */
+    #search-input {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      width: 100%;
+      font-size: 14px;
+      text-transform: none; /* Do not force uppercase for searching */
+    }
+
+    /* Fade-in for page content */
+    .fade-in{animation:fadeIn .28s ease both}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+    @media (max-width:900px){
+      /* Sidebar */
+      .sidebar{width:68px;padding:16px}
+      .brand h1,.brand p{display:none}
+      
+      /* Main Content Padding/TopBar */
+      .content{padding: 16px;}
+      .topbar{flex-direction: column; align-items: flex-start; gap: 10px;}
+      .row{margin-top: 5px;}
+
+      /* Forms */
+      form{grid-template-columns:1fr}
+      .name-group, .address-group{grid-template-columns: 1fr; gap: 8px;}
+      
+      /* Table */
+      table{min-width: unset;} /* Allow table to shrink on mobile */
+      
+      /* Radio Group on Mobile */
+      .radio-group{
+          gap: 10px;
+      }
+    }
+
+    /* Splash Screen */
+    #splash-intro {
+      position:fixed;top:0;left:0;width:100%;height:100%;
+      display:flex;flex-direction:column;justify-content:center;align-items:center;
+      background:#08331a;color:white;z-index:9999;transition:opacity 0.5s ease-out;
+    }
+
+    .developed-by {
+      position: fixed;bottom: 1rem;right: 1rem;
+      color: #6b7280;font-size: 11px;opacity: 0.9;text-align:right;
+    }
+    
+    /* Style for Pagination Controls */
+    .pagination-controls {
+        display:flex; 
+        justify-content:center; 
+        gap:10px; 
+        margin-top:12px;
+    }
+    .pagination-controls span {
+        display:flex; 
+        align-items:center; 
+        color:var(--muted); 
+        font-size:14px;
+    }
+    .pagination-controls button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        box-shadow: none;
+        background: rgba(11,97,55,0.02); /* Very light background for disabled secondary */
+    }
+
+  </style>
+</head>
+<body>
+  <div id="splash-intro">
+    <img src="assets/logo1.png" alt="DENR-CENRO Diffun Logo" style="width: 200px; height:auto; border-radius:12px;">
+    <h1>DENR-CENRO Diffun</h1>
+    <h3>Digital Client Monitoring System</h3>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/denrlogo.png" alt="DENR-CENRO Diffun" class="logo">
+        <div>
+          <h1>DENR-CENRO Diffun</h1>
+          <p style="font-weight:600">Digital Client Monitoring System</p>
+        </div>
+      </div>
+
+<nav>
+  <div class="nav-item active" data-view="client-form" id="nav-client-form">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2a4 4 0 0 1 4 4v1a4 4 0 1 1-8 0V6a4 4 0 0 1 4-4zM6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <div>Client Logging Kiosk</div>
+  </div>
+
+  <div class="nav-item" data-view="client-list" id="nav-client-list">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+      <path d="M3 6h18M3 12h18M3 18h18" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" />
+    </svg>
+    <div>Logged Clients List</div>
+  </div>
+
+  <a href="dashboard-personnel.html" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+    <div>Admin Dashboard</div>
+  </a>
+
+  <!-- Divider line -->
+  <hr id="divider-line" style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.3); margin: 12px 0;">
+
+  <a href="https://pqsp.penroquirino.org/" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;" 
+     target="_blank" 
+     rel="noopener noreferrer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+    <div>PENRO Quirino Support Portal</div>
+  </a>
+
+  <a href="https://r2.denr.gov.ph/" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;" 
+     target="_blank" 
+     rel="noopener noreferrer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+    <div>DENR Region 02 Portal</div>
+  </a>
+
+  <a href="https://systemsr2.denr.gov.ph/jobportal/pages/landing.php#home" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;" 
+     target="_blank" 
+     rel="noopener noreferrer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+    <div>DENR Region 02 Job Portal</div>
+  </a>
+
+  <a href="https://denr.gov.ph/wp-content/uploads/2024/09/DENR-Citizens-Charter-2024-2nd-Edition_.pdf" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;" 
+     target="_blank" 
+     rel="noopener noreferrer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+    <div>DENR Citizen's Charter</div>
+  </a>
+
+  <a href="https://systemsr2.denr.gov.ph/csm/" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;" 
+     target="_blank" 
+     rel="noopener noreferrer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+    </svg>
+    <div>Client Satisfaction Measurement (CSM) Survey Form</div>
+  </a>
+
+  <!-- Divider line -->
+  <hr id="divider-line" style="border: 0; border-top: 1px solid rgba(255, 255, 255, 0.3); margin: 12px 0;">
+
+  <!-- Contact / Social Links -->
+  <a href="https://www.facebook.com/DENR2Official" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;" 
+     target="_blank" 
+     rel="noopener noreferrer">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
+      <path d="M22 12a10 10 0 1 0-11.5 9.9v-7h-2v-3h2v-2.3c0-2 1.2-3.1 3-3.1.9 0 1.8.1 1.8.1v2h-1c-1 0-1.3.6-1.3 1.2V12h2.3l-.4 3h-1.9v7A10 10 0 0 0 22 12z"/>
+    </svg>
+    <div>DENR Cagayan Valley</div>
+  </a>
+
+  <a href="mailto:denr.diffun@gmail.com" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" ry="2" />
+      <polyline points="3 7 12 13 21 7" />
+    </svg>
+    <div>denr.diffun@gmail.com</div>
+  </a>
+
+  <a href="tel:+639366034899" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 3.15 8.81 19.79 19.79 0 0 1 .08 0.18 2 2 0 0 1 2 0h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L6 8a16 16 0 0 0 8 8l1.35-1.25a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+    </svg>
+    <div>09366034899</div>
+  </a>
+</nav>
+
+
+
+      <div style="margin-top:auto;font-size:12px;opacity:.95" id="statusContainer">
+        <div class="muted">Status:</div>
+        <div style="margin-top:6px;font-weight:700">Checking...</div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div class="topbar">
+        <div>
+          <div class="title">Digital Client Monitoring System</div>
+          <div class="subtitle">DENR-CENRO Diffun</div>
+        </div>
+        <div class="row">
+          <button id="syncBtn" class="secondary">Sync List</button>
+          <button id="testChimeBtn">🔊 Test Hourly Chime</button>
+        </div>
+      </div>
+
+      <section id="view-client-form" class="card fade-in">
+  <div id="realtime-datetime"></div>
+  <h3>Client Logging Kiosk</h3>
+  <form id="clientForm">
+    <div class="name-group">
+      <div>
+        <label>First Name</label>
+        <input name="firstName" type="text" required placeholder="e.g. JUAN" title="Please enter your First Name"/>
+      </div>
+      <div>
+        <label>Middle Name</label>
+        <input name="middleName" type="text" placeholder="" title="Please enter your Middle Initial or Middle Name"/>
+      </div>
+      <div>
+        <label>Last Name</label>
+        <input name="lastName" type="text" required placeholder="e.g. DELA CRUZ" title="Please enter your Last Name"/>
+      </div>
+    </div>
+
+    <div>
+      <label>Age</label>
+      <input name="age" type="number" min="1" max="150" required placeholder="e.g. 35" title="Please enter your Age"/>
+    </div>
+
+    <div>
+      <label>Mobile Number</label>
+      <input name="mobile" type="tel" inputmode="numeric" pattern="09[0-9]{9}" placeholder="e.g. 09123456789" title="Please enter your 11-digit mobile number."/>
+    </div>
+
+    <div>
+      <label>Sex</label>
+      <div class="radio-group">
+        <input type="radio" id="sexMale" name="sex" value="MALE" required><label for="sexMale">MALE</label>
+        <input type="radio" id="sexFemale" name="sex" value="FEMALE" required><label for="sexFemale">FEMALE</label>
+      </div>
+    </div>
+
+    <div>
+      <label>Are you PWD (Persons with Disability)?</label>
+      <div class="radio-group">
+        <input type="radio" id="pwdYes" name="pwd" value="YES" required><label for="pwdYes">YES</label>
+        <input type="radio" id="pwdNo" name="pwd" value="NO" required checked><label for="pwdNo">NO</label>
+      </div>
+    </div>
+
+    <div id="pregnant-status-group" style="display: none;">
+      <label>Are you a Pregnant Woman?</label>
+      <div class="radio-group">
+        <input type="radio" id="pregnantYes" name="pregnant" value="YES"><label for="pregnantYes">YES</label>
+        <input type="radio" id="pregnantNo" name="pregnant" value="NO" checked><label for="pregnantNo">NO</label>
+      </div>
+    </div>
+
+    <div class="full">
+      <label>Address</label>
+      <div class="address-group">
+        <div><label style="font-size: 11px; margin-top: 0">Province</label><select name="province" required></select></div>
+        <div><label style="font-size: 11px; margin-top: 0">Municipality</label><select name="municipality" required></select></div>
+        <div><label style="font-size: 11px; margin-top: 0">Barangay</label><select name="barangay" required></select></div>
+        <div><label style="font-size: 11px; margin-top: 0">Purok / Zone</label><input name="purokZone" type="text" placeholder="e.g. ZONE 1" title="Please enter your Purok or Zone"/></div>
+      </div>
+    </div>
+
+    <div class="full">
+      <label>Purpose</label>
+      <textarea name="purpose" required placeholder="e.g. FOR CENSUS DATA" title="Please state your Purpose of visit"></textarea>
+    </div>
+          <div><label>Section / Unit Concerned</label>
+            <select name="section" required>
+              <option value="">-- Select Section / Unit Concerned --</option>
+              <option>Conservation & Development Section</option>
+              <option>Monitoring & Enforcement Section</option>
+              <option>Regulation & Permitting Section</option>
+              <option>Planning & Support Unit</option>
+              <option>Office of the CENR Officer</option>
+            </select>
+          </div>
+          <div><label>Concerned Official</label>
+            <select name="personnel" id="personnelSelect" required>
+              <option value="">-- Select Personnel --</option>
+              </select>
+          </div>
+          
+          <div class="actions full">
+            <button type="reset" class="secondary">Clear</button>
+            <button type="submit" id="submitBtn">Submit Log</button>
+          </div>
+        </form>
+      </section>
+
+      <section id="view-client-list" class="card" style="display:none">
+        <h3>Logged Clients</h3>
+        <input type="text" id="search-input" placeholder="Search by Name, Purpose, or Section..." />
+        <div id="clientListContainer">No records yet.</div>
+      </section>
+      
+      </main>
+  </div>
+
+  <div class="developed-by">
+    Developed by <br><strong>ALDRIN N. DAMANCE, LPT <br>IT SUPPORT STAFF</strong>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Replace this with your deployed Web App URL
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycby8FVDqXmTpmQ0xE8C1CJcUsjslHjc8sf29LHBqYkcL_u4spSMrHuBTxcVgD7kHzIQA1g/exec';
+    
+    let allClients = [];
+    let allProvinces = [];
+    let allMunicipalities = [];
+
+    // State for filtering
+    let currentFilter = '';
+
+    // Pagination related variables
+    let currentPage = 1;
+    const rowsPerPage = 10;
+
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = {
+        'client-form': document.getElementById('view-client-form'),
+        'client-list': document.getElementById('view-client-list'),
+        // REMOVED 'personnel-dashboard' from views object
+    };
+    const provinceSelect = document.querySelector('select[name="province"]');
+    const municipalitySelect = document.querySelector('select[name="municipality"]');
+    const barangaySelect = document.querySelector('select[name="barangay"]');
+    const personnelSelect = document.getElementById('personnelSelect'); 
+    const clientForm = document.getElementById('clientForm');
+    const submitBtn = document.getElementById('submitBtn'); // Reference to the submit button
+    const syncBtn = document.getElementById('syncBtn');
+    const clientListContainer = document.getElementById('clientListContainer');
+    const statusContainer = document.getElementById('statusContainer');
+    const realtimeDatetime = document.getElementById('realtime-datetime');
+    const splashIntro = document.getElementById('splash-intro');
+    const searchInput = document.getElementById('search-input'); 
+
+    // UPDATED: Sex Element References
+    const sexRadios = document.querySelectorAll('input[name="sex"]');
+    const pregnantStatusGroup = document.getElementById('pregnant-status-group');
+    const pregnantRadios = document.querySelectorAll('input[name="pregnant"]');
+
+
+    const PROVINCE_API_URL = 'https://psgc.gitlab.io/api/provinces.json';
+    const MUNICIPALITY_API_URL = (provinceCode) => `https://psgc.gitlab.io/api/provinces/${provinceCode}/cities-municipalities.json`;
+    const BARANGAY_API_URL = (municipalityCode) => `https://psgc.gitlab.io/api/cities-municipalities/${municipalityCode}/barangays.json`;
+
+    // Date formatting options (for re-use)
+    const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true };
+
+
+    // --- Core Logic Functions ---
+    
+    // Page and Navigation (SIMPLIFIED: No redirect logic needed)
+    function switchView(view) {
+        // This function now only handles the local views defined by data-view attributes.
+        // The Personnel Dashboard is an <a> tag and handles its own navigation.
+        
+        navItems.forEach(x => x.classList.remove('active'));
+        
+        // Ensure the clicked element has an ID before trying to access it
+        const navElement = document.getElementById(`nav-${view}`);
+        if (navElement) {
+            navElement.classList.add('active');
+        }
+
+        for (const k in views) views[k].style.display = (k === view) ? 'block' : 'none';
+        
+        if (view === 'client-list') {
+             if (allClients.length === 0) loadClientList();
+             else applyFilterAndRender(false); // Do not reset page when just switching view
+        }
+    }
+
+    // Set up click listeners for navigation items (Only for the local views that are divs with data-view)
+    navItems.forEach(n => {
+        // Only attach listener to divs with data-view (client-form, client-list)
+        if (n.getAttribute('data-view')) { 
+            n.addEventListener('click', () => switchView(n.getAttribute('data-view')));
+        }
+    });
+
+    // Address and Personnel Population (Same as before)
+    async function populateProvinces() {
+        try {
+            const response = await fetch(PROVINCE_API_URL);
+            allProvinces = await response.json();
+            allProvinces.sort((a, b) => a.name.localeCompare(b.name));
+            provinceSelect.innerHTML = '<option value="">-- Select Province --</option>' + 
+                                       allProvinces.map(p => `<option value="${p.code}">${p.name.toUpperCase()}</option>`).join('');
+        } catch (error) {
+            console.error("Failed to load provinces:", error);
+            provinceSelect.innerHTML = '<option value="">Failed to load</option>';
+        }
+    }
+
+    async function populateMunicipalities(provinceCode) {
+        municipalitySelect.innerHTML = '<option value="">-- Select Municipality --</option>';
+        barangaySelect.innerHTML = '<option value="">-- Select Barangay --</option>';
+        if (!provinceCode) return;
+
+        try {
+            const response = await fetch(MUNICIPALITY_API_URL(provinceCode));
+            allMunicipalities = await response.json();
+            allMunicipalities.sort((a, b) => a.name.localeCompare(b.name));
+            municipalitySelect.innerHTML = '<option value="">-- Select Municipality --</option>' +
+                                           allMunicipalities.map(m => `<option value="${m.code}">${m.name.toUpperCase()}</option>`).join('');
+        } catch (error) {
+            console.error("Failed to load municipalities:", error);
+        }
+    }
+
+    async function populateBarangays(municipalityCode) {
+        barangaySelect.innerHTML = '<option value="">-- Select Barangay --</option>';
+        if (!municipalityCode) return;
+
+        try {
+            const response = await fetch(BARANGAY_API_URL(municipalityCode));
+            const barangays = await response.json();
+            barangays.sort((a, b) => a.name.localeCompare(b.name));
+            barangaySelect.innerHTML = '<option value="">-- Select Barangay --</option>' +
+                                       barangays.map(b => `<option value="${b.name}">${b.name.toUpperCase()}</option>`).join('');
+        } catch (error) {
+            console.error("Failed to load barangays:", error);
+        }
+    }
+
+    provinceSelect.addEventListener('change', (e) => populateMunicipalities(e.target.value));
+    municipalitySelect.addEventListener('change', (e) => populateBarangays(e.target.value));
+    
+    async function populatePersonnel() {
+        personnelSelect.innerHTML = '<option value="">-- Loading Personnel... --</option>';
+        try {
+            const res = await fetch(GAS_URL + '?action=list_personnel');
+            const personnel = await res.json();
+            
+            let optionsHtml = '<option value="">-- Select Personnel --</option>';
+            optionsHtml += personnel.map(p => `<option value="${p.toUpperCase()}">${p.toUpperCase()}</option>`).join('');
+            
+            personnelSelect.innerHTML = optionsHtml;
+        } catch (error) {
+            console.error("Failed to load personnel list:", error);
+            personnelSelect.innerHTML = '<option value="">-- Failed to load personnel --</option>';
+        }
+    }
+    
+    populateProvinces();
+    populatePersonnel();
+
+    // UPDATED: Sex and Pregnancy Conditional Logic
+    sexRadios.forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            const isFemale = e.target.value === 'FEMALE';
+            pregnantStatusGroup.style.display = isFemale ? 'block' : 'none';
+
+            // When FEMALE is selected, make the 'pregnant' field required
+            pregnantRadios.forEach(pradio => {
+                pradio.required = isFemale;
+            });
+            
+            // When MALE is selected, ensure the 'NO' option is checked and no selection is required
+            if (!isFemale) {
+                document.getElementById('pregnantNo').checked = true;
+                document.getElementById('pregnantYes').checked = false;
+            } else {
+                // When FEMALE is selected, ensure 'NO' is checked by default
+                document.getElementById('pregnantNo').checked = true;
+                document.getElementById('pregnantYes').checked = false;
+            }
+        });
+    });
+    // --- END: Sex and Pregnancy Conditional Logic ---
+
+
+    // --- NEW: Function to speak the success message ---
+    function speakLoginSuccess() {
+        const textToSpeak = "You are successfully logged in"; // The exact phrase requested
+        
+        if ('speechSynthesis' in window) {
+            // Cancel any previous speech (like the hourly announcement)
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+            
+            const utterance = new SpeechSynthesisUtterance(textToSpeak);
+            utterance.volume = 1; 
+            utterance.rate = 1;   
+            
+            const voices = window.speechSynthesis.getVoices();
+            const preferredVoice = voices.find(voice => voice.name.includes('Google') && voice.lang.includes('en'));
+
+            if (preferredVoice) {
+                 utterance.voice = preferredVoice;
+            } else if (voices.length > 0) {
+                 utterance.voice = voices[0];
+            }
+
+            window.speechSynthesis.speak(utterance);
+        } else {
+            console.warn("Speech Synthesis not supported for login message.");
+        }
+    }
+    // ----------------------------------------------------
+
+
+// Updated Form Submission with Ring/Chime Logic
+    clientForm.addEventListener('submit', async e => {
+        e.preventDefault();
+        
+        // 1. Get Personnel Name for the announcement
+        const formDataObj = new FormData(clientForm);
+        const personnelName = formDataObj.get('personnel');
+
+        // 2. Ask the user BEFORE sending to Google Sheets
+        const ringResult = await Swal.fire({
+            title: 'Call Personnel?',
+            text: `Do you want to ring the chime and notify ${personnelName}?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0b6137', // DENR Green
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Yes, Ring & Notify',
+            cancelButtonText: 'No, Just Log'
+        });
+
+        const ringValue = ringResult.isConfirmed ? 'YES' : 'NO';
+
+        // 3. Start Loading State
+        submitBtn.textContent = 'Processing...';
+        submitBtn.classList.add('loading');
+        
+        const data = new FormData(clientForm);
+        
+        // Add timestamp and the Ring status
+        data.append('timestamp', new Date().toLocaleString());
+        data.append('ring', ringValue); // This matches your new Google Script column
+        
+        const selectedProvince = allProvinces.find(p => p.code === provinceSelect.value);
+        const selectedMunicipality = allMunicipalities.find(m => m.code === municipalitySelect.value);
+
+        const purokZone = data.get('purokZone').toUpperCase();
+        const barangay = data.get('barangay');
+        const municipality = selectedMunicipality ? selectedMunicipality.name : '';
+        const province = selectedProvince ? selectedProvince.name : '';
+
+        // Finalize Address
+        data.set('address', `${purokZone}, ${barangay}, ${municipality}, ${province}`.trim().replace(/,(\s,)+/g, ',').replace(/^,/, '').trim());
+        data.delete('purokZone');
+        data.delete('barangay');
+        data.delete('municipality');
+        data.delete('province');
+        
+        data.append('action', 'submit_client');
+
+        try {
+            const res = await fetch(GAS_URL, { method: 'POST', body: new URLSearchParams(data) });
+            const json = await res.json();
+
+            // 4. Handle Success
+            submitBtn.textContent = 'Submit Log';
+            submitBtn.classList.remove('loading');
+            
+            if (json.status === 'success') {
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: ringResult.isConfirmed ? 'Logged and Personnel Notified!' : 'Client log submitted successfully!',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+
+                clientForm.reset();
+                if (views['client-list'].style.display !== 'none') loadClientList(); 
+            } else {
+                throw new Error(json.message || 'Server error');
+            }
+        } catch (err) {
+            // Handle Error (Same as your previous logic)
+            submitBtn.textContent = 'Submit Log';
+            submitBtn.classList.remove('loading');
+            Swal.fire({
+                icon: 'error',
+                title: 'Submission Failed!',
+                html: `Error: <strong>${err.message}</strong>. Data saved locally.`,
+                confirmButtonColor: '#dc2626'
+            });
+            // ... Local Storage Fallback logic here ...
+        }
+    });
+
+
+    // --- Search Filter Logic (Same as before) ---
+    function applyFilterAndRender(resetPage = true) {
+        if (resetPage) {
+            currentPage = 1; 
+        }
+        const filterText = currentFilter.toLowerCase();
+        
+        const filteredClients = allClients.filter(client => {
+            if (!filterText) return true; 
+            
+            const searchPool = [
+                client.firstName, 
+                client.lastName, 
+                client.purpose, 
+                client.section, 
+                client.personnel,
+                client.address
+            ].join(' ').toLowerCase();
+
+            return searchPool.includes(filterText);
+        });
+        
+        renderClients(filteredClients);
+    }
+    
+    // Event listener for search input
+    searchInput.addEventListener('input', (e) => {
+        currentFilter = e.target.value;
+        applyFilterAndRender(); 
+    });
+
+
+    // Client List and Sync 
+    async function loadClientList() { 
+        clientListContainer.innerHTML = "Loading...";
+        try {
+            const res = await fetch(GAS_URL + '?action=list_clients');
+            allClients = await res.json();
+        } catch {
+            allClients = JSON.parse(localStorage.getItem('clients') || '[]');
+        }
+
+        // Sort by timestamp descending (newest first)
+        allClients.sort((a, b) => {
+            const dateA = new Date(a.timestamp);
+            const dateB = new Date(b.timestamp);
+            return dateB - dateA; 
+        });
+
+        applyFilterAndRender();
+    }
+
+    // Function to render the pagination controls
+    function renderPagination(rows, container) {
+        const totalPages = Math.ceil(rows.length / rowsPerPage);
+        if (totalPages <= 1) return; 
+
+        const paginationDiv = document.createElement('div');
+        paginationDiv.classList.add('pagination-controls');
+
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = 'Previous';
+        prevBtn.classList.add('secondary');
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                applyFilterAndRender(false); 
+            }
+        };
+        
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Next';
+        nextBtn.classList.add('secondary');
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                applyFilterAndRender(false); 
+            }
+        };
+
+        paginationDiv.appendChild(prevBtn);
+        paginationDiv.appendChild(pageInfo);
+        paginationDiv.appendChild(nextBtn);
+        container.appendChild(paginationDiv);
+    }
+
+    // Toggle Detail Row
+    function toggleDetails(button) {
+        const tr = button.closest('tr');
+        const nextRow = tr.nextElementSibling; 
+        
+        if (nextRow && nextRow.classList.contains('detail-row')) {
+            const isHidden = nextRow.style.display === 'none' || nextRow.style.display === '';
+            nextRow.style.display = isHidden ? 'table-row' : 'none';
+            button.textContent = isHidden ? 'Hide Details' : 'View Details';
+        }
+    }
+
+
+    // Client List Renderer (Slices array based on current page)
+    function renderClients(rows) {
+        if (!rows.length) {
+            clientListContainer.innerHTML = currentFilter ? 'No clients found matching your search.' : 'No records yet.';
+            return;
+        }
+        
+        // Calculate start and end indices for the current page
+        const startIndex = (currentPage - 1) * rowsPerPage;
+        const endIndex = startIndex + rowsPerPage;
+        const rowsToDisplay = rows.slice(startIndex, endIndex);
+
+
+        const table = document.createElement('table');
+        table.innerHTML = '<thead><tr><th>Name</th><th>Concerned Section/Office</th><th>Concerned Official</th><th>Purpose (Preview)</th><th>Time Logged</th><th>Action</th></tr></thead>';
+        const tbody = document.createElement('tbody');
+        
+        rowsToDisplay.forEach(r => {
+            
+            // --- 1. TIMESTAMP FORMATTING FIX ---
+            const rawTimestamp = r.timestamp || '';
+            let formattedTimestamp = rawTimestamp;
+
+            // Detect and format ISO 8601 strings (like '2025-09-25T07:31:30.000Z')
+            if (rawTimestamp && rawTimestamp.includes('T') && rawTimestamp.includes('Z')) {
+                try {
+                    const dateObj = new Date(rawTimestamp);
+                    formattedTimestamp = dateObj.toLocaleDateString('en-US', dateOptions);
+                } catch (e) {
+                    // Fallback to raw timestamp
+                }
+            }
+            // ------------------------------------
+
+            // --- 2. PURPOSE TRUNCATION (for main view) ---
+            const fullPurpose = r.purpose || 'N/A';
+            let displayedPurpose = fullPurpose;
+            const words = fullPurpose.split(/\s+/); 
+            if (words.length > 5) { // Truncate to 5 words for a cleaner main table
+                displayedPurpose = words.slice(0, 5).join(' ') + '...';
+            }
+            const purposeCell = `<td title="${fullPurpose}">${displayedPurpose}</td>`;
+            // ------------------------------------
+            
+            // MAIN ROW
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td>${r.lastName || ''}, ${r.firstName || ''}</td>
+              <td>${r.section || ''}</td>
+              <td>${r.personnel || ''}</td>
+              ${purposeCell}
+              <td class="muted">${formattedTimestamp || ''}</td>
+              <td><button class="secondary" onclick="toggleDetails(this)">View Details</button></td>
+            `;
+            tbody.appendChild(tr);
+
+            // DETAIL ROW (Initially hidden)
+            const detailTr = document.createElement('tr');
+            detailTr.classList.add('detail-row');
+            detailTr.style.display = 'none'; 
+            detailTr.innerHTML = `
+                <td colspan="6">
+                    <div class="detail-content">
+                        <strong>Full Address:</strong> ${r.address || 'N/A'} <br>
+                        <strong>Sex:</strong> ${r.sex || 'N/A'} &bull; 
+                        <strong>PWD:</strong> ${r.pwd || 'N/A'} ${r.sex === 'FEMALE' ? `&bull; <strong>Pregnant:</strong> ${r.pregnant || 'N/A'}` : ''} <br>
+                        <strong>Full Purpose:</strong> ${r.purpose || 'N/A'} <br>
+                        <strong>Age:</strong> ${r.age || 'N/A'} &bull; 
+                        <strong>Mobile:</strong> ${r.mobile || 'N/A'}
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(detailTr);
+        });
+        
+        table.appendChild(tbody);
+        clientListContainer.innerHTML = ''; // Clear container
+        clientListContainer.appendChild(table);
+        
+        // Add pagination controls after the table
+        renderPagination(rows, clientListContainer);
+    }
+    
+    // Expose toggleDetails globally for the onclick attribute
+    window.toggleDetails = toggleDetails;
+    
+    syncBtn.addEventListener('click', () => {
+        currentFilter = ''; // Clear filter on explicit sync
+        searchInput.value = '';
+        loadClientList();
+    }); 
+
+    // Status Check (Same as before)
+    async function checkConnection() {
+        try {
+            const res = await fetch(GAS_URL);
+            if (res.ok) {
+                statusContainer.innerHTML = '<div class="muted">Status:</div><div style="color:#22c55e">Connected</div>';
+            } else {
+                throw new Error('Server not reachable');
+            }
+        } catch {
+            statusContainer.innerHTML = '<div class="muted">Status:</div><div style="color:#ef4444">Not Connected</div>';
+        }
+    }
+    checkConnection();
+
+
+    // Real-time Date and Time 
+    function updateDateTime() {
+        const now = new Date();
+
+        // 1. Time (HH:MM:SS AM/PM)
+        const timeOptions = { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true };
+        const timeString = now.toLocaleTimeString('en-US', timeOptions);
+        
+        // 2. Date and Day (e.g., Thursday, September 25, 2025)
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateString = now.toLocaleDateString('en-US', dateOptions);
+
+        realtimeDatetime.innerHTML = `
+            <span class="time-display">${timeString}</span>
+            <span class="date-display">${dateString}</span>
+        `;
+    }
+
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+    
+    // --- START: HOURLY TIME ANNOUNCEMENT LOGIC ---
+
+// 🔊 1. GLOBAL VARIABLES
+const chime = new Audio('assets/chime.m4a');
+let lastAnnouncedHour = -1;
+
+// 🖱️ Unlock audio after first interaction
+document.addEventListener('click', () => {
+    chime.play().then(() => chime.pause()).catch(() => {});
+}, { once: true });
+
+// 🗣️ Function to speak the current time
+function speakTime(hour) {
+    const synth = window.speechSynthesis;
+
+    // Convert 24-hour to 12-hour time
+    const period = hour >= 12 ? 'P.M.' : 'A.M.';
+    const hour12 = hour % 12 || 12;
+
+    const message = `The time is now ${hour12} ${period}.`;
+    console.log("🗣️ Speaking:", message);
+
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.lang = 'en-US';
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+
+    synth.speak(utterance);
+}
+
+// ▶️ Function to play chime then speak
+function playChimeAndSpeak() {
+    const now = new Date();
+    const currentHour = now.getHours();
+
+    chime.currentTime = 0;
+    chime.play()
+        .then(() => console.log("🔔 Chime started playing..."))
+        .catch(error => {
+            console.warn("⚠️ Could not play chime:", error);
+            speakTime(currentHour);
+        });
+
+    chime.onended = () => {
+        console.log("🎵 Chime ended. Speaking time...");
+        speakTime(currentHour);
+    };
+}
+
+// ⏰ Automatic hourly announcement
+function setupHourlyAnnouncements() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSecond = now.getSeconds();
+
+    if (currentHour !== lastAnnouncedHour && currentMinute === 0 && currentSecond < 5) {
+        if (!window.speechSynthesis.speaking) {
+            playChimeAndSpeak();
+            lastAnnouncedHour = currentHour;
+        }
+    }
+
+    setTimeout(setupHourlyAnnouncements, 1000);
+}
+
+// 🎛️ Manual test button
+document.getElementById("testChimeBtn").addEventListener("click", () => {
+    playChimeAndSpeak();
+});
+
+// ▶️ Start automatic loop
+setupHourlyAnnouncements();
+    // --- END: HOURLY TIME ANNOUNCEMENT LOGIC ---
+
+
+    // Splash Screen (Same as before)
+    setTimeout(() => {
+        splashIntro.style.opacity = '0';
+        setTimeout(() => splashIntro.remove(), 500);
+    }, 1500);
+});
+
+// 🔠 Auto-uppercase all text inputs and textareas
+document.addEventListener('input', (event) => {
+  const el = event.target;
+
+  // Only apply to text-like fields, EXCLUDING 'tel'
+  if (el.tagName === 'INPUT' && 
+      (el.type === 'text' || el.type === 'search') && // Removed || el.type === 'tel'
+      el.name !== 'mobile') { // Added an extra check just in case, though type exclusion should suffice
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    el.value = el.value.toUpperCase();
+    // keep cursor in place
+    el.setSelectionRange(start, end);
+  }
+
+  if (el.tagName === 'TEXTAREA') {
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    el.value = el.value.toUpperCase();
+    el.setSelectionRange(start, end);
+  }
+});
+
+</script>
+</body>
+
+
+</html>

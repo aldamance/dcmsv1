@@ -1,0 +1,2199 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DENR-CENRO Diffun — Client Monitoring Dashboard</title>
+  <link rel="icon" href="assets/denrlogo.png" type="image/svg+xml" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <style>
+    :root{
+      --green-900:#08331a;
+      --green-700:#0b6137;
+      --muted:#6b7280;
+      --bg:#f7f9fb;
+      --card:#ffffff;
+      --radius:12px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#f7fbf7 0%, #f7f9fb 100%);color:#0f172a}
+
+    .app{display:flex;min-height:100vh}
+    .sidebar{
+      width:280px;
+      background:var(--green-900);
+      color:white;
+      padding:20px 16px;
+      display:flex;
+      flex-direction:column;
+      gap:20px;
+      /* Main Sidebar Layout */
+      position: sticky; top: 0; height: 100vh;
+      z-index: 1000;
+      transition: width .25s ease, transform .3s ease; /* Added transform transition */
+      box-shadow:0 6px 18px rgba(3,10,7,0.15);
+    }
+    
+    .brand{
+        display:flex;
+        gap:12px;
+        align-items:center;
+        min-height: 44px; /* Ensure brand section doesn't disappear */
+    }
+    .logo{width:44px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700}
+    .brand h1{font-size:15px;margin:0}
+    .brand p{margin:0;font-size:11px;opacity:.92}
+
+    nav{display:flex;flex-direction:column;gap:8px}
+    .nav-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:10px;cursor:pointer;transition:background .18s, transform .08s;user-select:none}
+    .nav-item:hover{background:rgba(255,255,255,0.06);transform:translateX(4px)}
+    .nav-item.active{background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))}
+    .nav-item svg{opacity:.95}
+
+    .content{flex:1;padding:28px}
+    .topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px; flex-wrap: wrap;}
+    
+    /* New container for the title and the mobile menu button */
+    .topbar-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .title{font-size:18px;font-weight:700}
+    .subtitle{color:var(--muted);font-size:13px}
+    
+    /* Right side of the top bar */
+    .topbar .row {
+        flex-direction: column;
+        align-items: flex-end; 
+        gap: 12px;
+    }
+
+    .card{background:var(--card);border-radius:var(--radius);box-shadow:0 6px 20px rgba(16,24,40,0.06);}
+
+    /* MODERN DIGITAL CLOCK STYLES */
+    #realtime-datetime {
+      text-align: center;
+      font-family: 'Inter', 'DSEG7 Classic', monospace; 
+      font-size: 24px; 
+      font-weight: 700;
+      color: var(--green-900); 
+      margin-bottom: 0 !important; 
+      padding: 8px 12px;
+      background-color: #e2e8f0; 
+      border-radius: 8px;
+      letter-spacing: 1px; 
+      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      margin-right: 0 !important; 
+    }
+
+    .time-display {
+        font-size: 32px; 
+        color: var(--green-700); 
+        font-weight: 900;
+    }
+
+    .date-display {
+        font-size: 13px; 
+        font-weight: 600;
+        color: var(--muted);
+        margin-top: 2px;
+    }
+    
+    .actions{display:flex;gap:10px;justify-content:center;margin-top:8px}
+    button{
+        padding:10px 14px;
+        border-radius:10px;
+        border:0;
+        background:var(--green-700);
+        color:white;
+        font-weight:600;
+        cursor:pointer;
+        transition:transform .12s, box-shadow .12s, background-color .12s;
+        white-space: nowrap; 
+    }
+    
+    .developed-by {
+      position: fixed;bottom: 1rem;right: 1rem;
+      color: #6b7280;font-size: 11px;opacity: 0.9;text-align:right;
+    }
+    
+    /* Table Styles */
+    #clientListContainer { overflow-x: auto; }
+    table{width:100%;border-collapse:collapse;margin-top:12px;min-width: 700px;} 
+    thead th{text-align:left;padding:12px 8px;color:var(--muted);font-size:13px;border-bottom:1px solid #eef5f7}
+    tbody td{padding:12px 8px;border-bottom:1px solid #fbfcfd; font-size: 14px;}
+    
+    /* Search Bar Style */
+    #search-input {
+      margin-bottom: 15px;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      width: 100%;
+      font-size: 14px;
+      text-transform: none; 
+    }
+
+    /* Pagination */
+    .pagination-controls {
+        display:flex; 
+        justify-content:center; 
+        gap:10px; 
+        margin-top:12px;
+    }
+    
+    /* ======================================= */
+    /* ADDED: NEW MODERN CARD STYLES */
+    /* ======================================= */
+
+    /* New Modern Card Styles */
+    .stat-grid {
+        display: grid;
+        /* Responsive grid: minimum card width 180px, max 6 columns */
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 15px;
+        margin-bottom: 25px;
+    }
+
+    .stat-card {
+        background-color: var(--card);
+        border-radius: var(--radius);
+        padding: 16px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 4, 6, 0.1);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 6px;
+    }
+
+    .card-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .card-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 14px;
+    }
+
+    /* Color Coding for Icons */
+    .icon-blue { background-color: #3b82f6; }
+    .icon-pink { background-color: #ec4899; }
+    .icon-purple { background-color: #8b5cf6; }
+    .icon-green { background-color: var(--green-700); }
+    .icon-yellow { background-color: #f59e0b; }
+    .icon-orange { background-color: #f97316; } /* NEW COLOR FOR SENIOR CITIZEN */
+
+    .card-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #0f172a; /* dark text */
+        margin-bottom: 5px;
+    }
+
+    .card-footer {
+        display: flex;
+        align-items: center;
+        font-size: 12px;
+        min-height: 20px;
+        margin-top: 4px;
+    }
+
+    .trend {
+        display: inline-flex;
+        align-items: center;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-weight: 500;
+    }
+
+    .trend-up {
+        color: var(--green-700);
+        background-color: #d1fae5;
+    }
+
+    .trend-down {
+        color: #ef4444;
+        background-color: #fee2e2;
+    }
+
+    .trend-neutral {
+        color: var(--muted);
+        background-color: #f1f5f9;
+    }
+
+    .trend-label {
+        margin-left: 8px;
+        color: var(--muted);
+    }
+
+    /* TOP Concerned Official Card (List Style) */
+    .top-official-card {
+        background-color: var(--card);
+        border-radius: var(--radius);
+        padding: 20px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-top: 25px;
+    }
+
+    .official-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .official-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid #f3f4f6;
+        font-size: 14px;
+    }
+
+    .official-item:last-child {
+        border-bottom: none;
+    }
+
+    .official-name {
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+
+    .official-count {
+        padding: 4px 8px;
+        border-radius: 6px;
+        background-color: var(--green-700);
+        color: white;
+        font-weight: 600;
+    }
+    
+    /* ======================================= */
+    /* SPLASH SCREEN STYLES (FIXED) */
+    /* ======================================= */
+    #splash-intro {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg); /* Use the defined background color */
+      z-index: 2000; /* Ensure it's above all other elements */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.5s ease-out, visibility 0.5s ease-out;
+      text-align: center;
+    }
+    
+    #splash-intro h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--green-900);
+      margin-bottom: 0;
+    }
+    
+    #splash-intro h3 {
+      font-size: 16px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 5px;
+    }
+    /* Style for hidden splash screen */
+    #splash-intro.hidden {
+        opacity: 0;
+        visibility: hidden;
+    }
+
+    /* ======================================= */
+    /* MODAL STYLES (For Reports) */
+    /* ======================================= */
+    .modal {
+      display: none; /* Hidden by default */
+      position: fixed; 
+      z-index: 1001; /* Above sidebar */
+      left: 0;
+      top: 0;
+      width: 100%; 
+      height: 100%; 
+      overflow: auto; 
+      background-color: rgba(0,0,0,0.4); 
+    }
+
+    .modal-content {
+      background-color: #fefefe;
+      margin: 15% auto; /* 15% from the top and centered */
+      padding: 20px;
+      border: 1px solid #888;
+      width: 80%; 
+      max-width: 500px;
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    
+    .modal-content label {
+        display: block;
+        margin-top: 15px;
+        margin-bottom: 5px;
+        font-weight: 600;
+    }
+    
+    .modal-content select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        font-size: 16px;
+    }
+
+    .close {
+      color: #aaa;
+      float: right;
+      font-size: 28px;
+      font-weight: bold;
+    }
+
+    .close:hover,
+    .close:focus {
+      color: #000;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    
+    .modal-buttons {
+        margin-top: 25px;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    
+    .modal-buttons button.secondary {
+        background-color: #6b7280;
+    }
+
+    /* ======================================= */
+    /* MOBILE OPTIMIZATION MEDIA QUERIES */
+    /* ======================================= */
+    
+    /* Tablet/Compact Desktop (900px to 601px) */
+    @media (max-width: 900px) {
+      /* Collapsed Sidebar */
+      .sidebar{width:68px;padding:16px; position: static; height: auto;}
+      .brand h1,.brand p{display:none}
+      .app { flex-direction: column; } 
+    }
+    
+    /* Mobile Phone Portrait (<= 600px) */
+    @media (max-width: 600px) {
+        .content {
+            padding: 15px; 
+        }
+        
+        /* 1. HIDE the sidebar by default and make it an overlay */
+        .sidebar {
+            width: 280px; /* Full width when open */
+            height: 100vh;
+            position: fixed; 
+            top: 0;
+            left: 0;
+            transform: translateX(-100%); /* Hide it off-screen */
+            box-shadow: 6px 0 18px rgba(3, 10, 7, 0.35); /* Shadow on the side */
+            padding: 20px 16px; 
+        }
+        
+        /* 2. SHOW the sidebar when 'open' class is applied */
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        
+        /* 3. Show full brand text when menu is open */
+        .sidebar.open .brand h1, .sidebar.open .brand p {
+            display: block !important;
+        }
+
+        /* 4. Show the mobile menu button */
+        #menu-toggle {
+            display: block !important;
+        }
+        
+        /* 5. Add an overlay when menu is open to dim content */
+        .app.menu-open:after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999; 
+        }
+
+        /* Top Bar: Force stack layout for titles and actions */
+        .topbar {
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+        
+        .topbar-left {
+            width: 100%;
+            justify-content: flex-start; /* Align menu button and title */
+        }
+        
+        .title {
+            font-size: 16px;
+        }
+
+        /* Time & Sync Button Group */
+        .topbar .row {
+            width: 100%;
+            flex-direction: row; 
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        /* Tables */
+        table{min-width: 450px;}
+        thead th, tbody td {
+            padding: 8px 5px; 
+            font-size: 13px; 
+        }
+        
+        .pagination-controls button {
+            font-size: 13px;
+            padding: 8px 10px;
+        }
+        
+        .developed-by {
+            display: none;
+        }
+        
+        .modal-content {
+            margin: 50% auto;
+            width: 95%;
+        }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="assets/denrlogo.png" alt="DENR-CENRO Diffun" class="logo">
+        <div>
+          <h1>DENR-CENRO Diffun</h1>
+          <p style="font-weight:600">Client Monitoring Dashboard</p>
+        </div>
+      </div>
+
+    <nav>
+        <div class="nav-item active" data-view="client-list" id="nav-client-list">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6h18M3 12h18M3 18h18" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <div>Dashboard</div>
+        </div>
+        
+
+        <div class="nav-item" id="nav-scroll-client-list">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M17 10h-6a1 1 0 00-1 1v6a1 1 0 001 1h6a1 1 0 001-1v-6a1 1 0 00-1-1zm1 10h-8a2 2 0 01-2-2V8a2 2 0 012-2h10a2 2 0 012 2v10a2 2 0 01-2 2z" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M18 10h-2M18 14h-2M18 18h-2" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>Logged Clients</div>
+        </div>
+        
+        <div class="nav-item" id="nav-reports">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>Reports</div>
+        </div>
+        <br>
+  <a href="index.html" 
+     class="nav-item" 
+     style="text-decoration: none; color: inherit; cursor: pointer;">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" 
+        stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="7" height="7" />
+      <rect x="14" y="3" width="7" height="7" />
+      <rect x="14" y="14" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" />
+    </svg>
+    <div>Client Logging Kiosk</div>
+  </a>
+        </nav>
+
+      <div style="margin-top:auto;font-size:12px;opacity:.95" id="statusContainer">
+        <div class="muted">Status:</div>
+        <div style="margin-top:6px;font-weight:700">Checking...</div>
+      </div>
+    </aside>
+    
+      <div id="audio-alert-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 3000; display: flex; align-items: center; justify-content: center;">
+    <button id="initialize-speech-btn" style="padding: 15px 30px; font-size: 18px; font-weight: 700; background: var(--green-700); color: white; border: none; border-radius: 10px; cursor: pointer;">
+        Enable Audio Alerts & Dashboard
+    </button>
+</div>
+
+    <main class="content">
+      <div class="topbar">
+        <div class="topbar-left">
+             <button id="menu-toggle" style="display:none; padding: 8px 10px; background:var(--green-700); border-radius: 8px;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 12h18M3 6h18M3 18h18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <div>
+              <div class="title">Client Monitoring Dashboard</div>
+              <div class="subtitle">DENR-CENRO Diffun</div>
+            </div>
+        </div>
+        <div class="row">
+          <div id="realtime-datetime" style="margin-bottom: 0;"></div>
+          <button id="syncBtn" class="secondary">Sync List</button>
+        <button id="testChimeBtn">🔊 Time Check</button>
+        </div>
+      </div>
+
+      <h2 style="font-size: 1.5rem; margin-top: 30px; margin-bottom: 15px; color: #0f172a;">Client Headcount Overview</h2>
+      <div class="stat-grid">
+          <div class="stat-card">
+              <div class="card-header">
+                  <div class="card-title">Daily Clients</div>
+                  <div class="card-icon icon-green">
+                      <i class="fas fa-user-check"></i>
+                  </div>
+              </div>
+              <div class="card-value">--</div>
+              <div class="card-footer">
+                  <span class="trend trend-neutral">
+                      <i class="fas fa-minus"></i> --
+                  </span>
+                  <span class="trend-label">vs. yesterday</span>
+              </div>
+          </div>
+
+          <div class="stat-card">
+              <div class="card-header">
+                  <div class="card-title" id="monthly-title">Monthly Clients (Loading...)</div>
+                  <div class="card-icon icon-blue">
+                      <i class="fas fa-calendar-alt"></i>
+                  </div>
+              </div>
+              <div class="card-value">--</div>
+              <div class="card-footer">
+                  <span class="trend trend-neutral">
+                      <i class="fas fa-minus"></i> --
+                  </span>
+                  <span class="trend-label">vs. last month</span>
+              </div>
+          </div>
+
+          <div class="stat-card">
+              <div class="card-header">
+                  <div class="card-title" id="male-monthly-title">Male Clients (Monthly)</div>
+                  <div class="card-icon icon-green">
+                      <i class="fas fa-male"></i>
+                  </div>
+              </div>
+              <div class="card-value">--</div>
+              <div class="card-footer">
+                  <span class="trend trend-neutral">
+                      <i class="fas fa-minus"></i> --
+                  </span>
+                  <span class="trend-label">of Monthly Total</span>
+              </div>
+          </div>
+
+          <div class="stat-card">
+              <div class="card-header">
+                  <div class="card-title" id="female-monthly-title">Female Clients (Monthly)</div>
+                  <div class="card-icon icon-pink">
+                      <i class="fas fa-female"></i>
+                  </div>
+              </div>
+              <div class="card-value">--</div>
+              <div class="card-footer">
+                  <span class="trend trend-neutral">
+                      <i class="fas fa-minus"></i> --
+                  </span>
+                  <span class="trend-label">of Monthly Total</span>
+              </div>
+          </div>
+
+          <div class="stat-card">
+              <div class="card-header">
+                  <div class="card-title" id="pwd-monthly-title">PWD Clients (Monthly)</div>
+                  <div class="card-icon icon-purple">
+                      <i class="fas fa-wheelchair"></i>
+                  </div>
+              </div>
+              <div class="card-value">--</div>
+              <div class="card-footer">
+                  <span class="trend trend-neutral">
+                      <i class="fas fa-wheelchair"></i>
+                  </span>
+                  <span class="trend-label">Monthly PWD Count</span>
+              </div>
+          </div>
+          
+          <div class="stat-card">
+              <div class="card-header">
+                  <div class="card-title" id="pregnant-monthly-title">Pregnant Clients (Monthly)</div>
+                  <div class="card-icon icon-yellow">
+                      <i class="fas fa-baby"></i>
+                  </div>
+              </div>
+              <div class="card-value">--</div>
+              <div class="card-footer">
+                  <span class="trend trend-neutral">
+                      <i class="fas fa-baby"></i>
+                  </span>
+                  <span class="trend-label">Monthly Pregnant Count</span>
+              </div>
+          </div>
+
+          <div class="stat-card">
+              <div class="card-header">
+                  <div class="card-title" id="senior-monthly-title">Senior Clients (Monthly)</div>
+                  <div class="card-icon icon-orange">
+                      <i class="fas fa-hands-helping"></i>
+                  </div>
+              </div>
+              <div class="card-value">--</div>
+              <div class="card-footer">
+                  <span class="trend trend-neutral">
+                      <i class="fas fa-hands-helping"></i>
+                  </span>
+                  <span class="trend-label">Monthly Senior Count</span>
+              </div>
+          </div>
+      </div>
+
+      <div class="top-official-card">
+          <h3 style="font-size: 1.25rem; margin-top: 0; margin-bottom: 15px; border-bottom: 1px solid #f3f4f6; padding-bottom: 10px;" id="topofficial-monthly-title">TOP Concerned Official (Monthly)</h3>
+          <ul class="official-list">
+              </ul>
+      </div>
+      <section id="view-client-list" class="card fade-in" style="margin-top: 25px;">
+        <h3>Logged Clients</h3>
+        <input type="text" id="search-input" placeholder="Search by Name, Purpose, or Section..." />
+        <div id="clientListContainer">Loading...</div>
+      </section>
+    </main>
+  </div>
+  
+  <div id="reportsModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="document.getElementById('reportsModal').style.display='none'">&times;</span>
+        <h2>Generate Monthly Report</h2>
+        
+        <label for="report-month">Select Month:</label>
+        <select id="report-month" name="report-month">
+            </select>
+        
+        <label for="report-year">Select Year:</label>
+        <select id="report-year" name="report-year">
+            </select>
+        
+        <div class="modal-buttons">
+            <button class="secondary" onclick="document.getElementById('reportsModal').style.display='none'">Cancel</button>
+            <button id="generateReportBtn">Generate & Preview Report</button>
+        </div>
+      </div>
+    </div>
+
+    
+
+      <div class="developed-by">
+    Developed by <br><strong>ALDRIN N. DAMANCE, LPT <br>IT SUPPORT STAFF</strong>
+  </div>
+<script>
+
+    // Replace this with your deployed Web App URL
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycby8FVDqXmTpmQ0xE8C1CJcUsjslHjc8sf29LHBqYkcL_u4spSMrHuBTxcVgD7kHzIQA1g/exec';
+    
+    
+document.addEventListener('DOMContentLoaded', () => {
+    const scrollClientListBtn = document.getElementById('nav-scroll-client-list');
+const targetSection = document.getElementById('view-client-list');
+
+    // --- New Sidebar Toggle Logic ---
+    const menuToggleBtn = document.getElementById('menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const app = document.querySelector('.app');
+
+    const toggleSidebar = () => {
+        const isOpen = sidebar.classList.toggle('open');
+        app.classList.toggle('menu-open');
+        
+        // Change button icon for better UX
+        const icon = menuToggleBtn.querySelector('svg');
+        if (isOpen) {
+            // X icon (close)
+            icon.innerHTML = '<path d="M18 6L6 18M6 6l12 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+        } else {
+            // Burger icon (menu)
+            icon.innerHTML = '<path d="M3 12h18M3 6h18M3 18h18" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+        }
+    };
+    
+    menuToggleBtn.addEventListener('click', toggleSidebar);
+    
+    // Close sidebar when a nav item is clicked on mobile
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 600) {
+                setTimeout(toggleSidebar, 100); // Small delay to allow navigation to process
+            }
+        });
+    });
+    // ------------------------------------
+
+    
+    let allClients = [];
+    let initialLoad = true; 
+
+    // State for filtering
+    let currentFilter = '';
+
+    // Pagination related variables
+    let currentPage = 1;
+    const rowsPerPage = 10;
+
+    const navItems = document.querySelectorAll('.nav-item');
+    const views = {
+        'client-list': document.getElementById('view-client-list')
+    };
+    const syncBtn = document.getElementById('syncBtn');
+    const clientListContainer = document.getElementById('clientListContainer');
+    const statusContainer = document.getElementById('statusContainer');
+    const realtimeDatetime = document.getElementById('realtime-datetime');
+    const splashIntro = document.getElementById('splash-intro');
+    const searchInput = document.getElementById('search-input'); 
+
+    // ADDED: Card title element references
+    const monthlyTitle = document.getElementById('monthly-title');
+    const maleMonthlyTitle = document.getElementById('male-monthly-title');
+    const femaleMonthlyTitle = document.getElementById('female-monthly-title');
+    const pwdMonthlyTitle = document.getElementById('pwd-monthly-title');
+    const pregnantMonthlyTitle = document.getElementById('pregnant-monthly-title');
+    // NEW: Senior Monthly Title Reference
+    const seniorMonthlyTitle = document.getElementById('senior-monthly-title');
+    const topofficialMonthlyTitle = document.getElementById('topofficial-monthly-title');
+
+    // Date formatting options (for re-use)
+    const dateOptions = { year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true };
+    const monthFormatter = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }); // ADDED for specific titles
+    
+// --- Audio Alert Function to say official's name twice (FIXED AND REINFORCED) ---
+// --- Audio Alert with Pre- and Post-Speech Chimes ---
+
+// --- FIX: User Activation for Speech Synthesis (Anti-Deprecation Fix) ---
+const speechOverlay = document.getElementById('audio-alert-overlay');
+const initSpeechBtn = document.getElementById('initialize-speech-btn');
+
+// GLOBAL FLAG: Tracks if the user has activated the audio.
+let speakerReady = false; 
+
+// Dummy function to perform a user-initiated, silent speech to gain permission
+function initializeSpeech() {
+    // 1. Speak a tiny, silent message to activate the browser's speech API
+    if ('speechSynthesis' in window) {
+        const activationUtterance = new SpeechSynthesisUtterance(" ");
+        activationUtterance.volume = 0; // Keep it silent
+        window.speechSynthesis.speak(activationUtterance);
+    }
+    
+    // 2. Set the global flag to true
+    speakerReady = true;
+
+    // 3. Hide the overlay now that activation is complete
+    speechOverlay.style.display = 'none';
+    
+    // 4. Kickstart the automatic client sync
+    // Assuming loadClientList is the function that initiates the periodic data fetch
+    // Call loadClientList(true) to force an immediate, silent check after activation.
+    if (typeof loadClientList === 'function') {
+        loadClientList(true); 
+    }
+}
+
+// Attach the activation function to the button click
+if (initSpeechBtn) {
+    initSpeechBtn.addEventListener('click', initializeSpeech);
+}
+
+// -------------------------------------------------------------------------
+/**
+ * Uses the browser's native Web Speech API (SpeechSynthesis) to speak the new client alert.
+ * This version uses a single chime that plays BEFORE the voice alert.
+ * @param {string} section - The client's concerned section/office.
+ * @param {string} personnel - The concerned official's name.
+ * @param {string} pwdStatus - 'Yes' or 'No' for PWD status.
+ * @param {string} pregnantStatus - 'Yes' or 'No' for pregnant status.
+ * @param {string} sex - The client's sex.
+ * @param {string} age - The client's age (string, will be parsed to integer).
+ */
+// ------------------------------
+// Adjustable TTS Settings
+// ------------------------------
+const ttsSettings = {
+    rate: 0.7,       // Speech speed (0.1 - 10)
+    pitch: 1,        // Pitch (0 - 2)
+    volume: 1        // Volume (0 - 1)
+};
+
+function speakNewClientAlert(section, personnel, pwdStatus, pregnantStatus, sex, age, ring) {
+    // --- NEW: RING CHECK ---
+    // Only proceed if 'ring' exists and equals 'yes' (case-insensitive)
+    if (!ring || ring.trim().toLowerCase() !== 'yes') {
+        console.log("Announcement skipped: Ring column is not 'yes'.");
+        return;
+    }
+
+    if (!window.speechSynthesis) {
+        console.error("Web Speech API is not supported in this browser.");
+        return;
+    }
+
+    // --- PRIORITY LOGIC ---
+    const clientAge = parseInt(age, 10);
+    const isPwd = pwdStatus?.trim().toLowerCase() === 'yes';
+    const isPregnant = pregnantStatus?.trim().toLowerCase() === 'yes' && sex?.trim().toLowerCase() === 'female';
+    const isSenior = !isNaN(clientAge) && clientAge >= 60;
+
+    let priorityText = "";
+    if (isPwd && isPregnant) priorityText = "This client is a person with disability and a pregnant woman.";
+    else if (isPwd && isSenior) priorityText = "This client is a senior citizen and a person with disability.";
+    else if (isPwd) priorityText = "This client is a person with disability.";
+    else if (isPregnant && isSenior) priorityText = "This client is a pregnant woman and a senior citizen.";
+    else if (isPregnant) priorityText = "This client is a pregnant woman.";
+    else if (isSenior) priorityText = "This client is a senior citizen.";
+
+    if (priorityText) {
+        priorityText = `Priority alert! ${priorityText} `;
+    }
+
+    // Repeat the concerned official's name for reinforcement
+    const repeatedPersonnel = `${personnel}. ${personnel}.`;
+
+    // --- ALERT MESSAGE ---
+    const alertMessage =
+        `Attention! A new client has logged in for the ${section}. `
+        + priorityText
+        + `Concerned official: ${repeatedPersonnel} `
+        + `Please attend to the client immediately.`;
+
+    // --- CHIME PATH ---
+    const chimeBefore = new Audio("assets/chime.m4a");
+    chimeBefore.volume = ttsSettings.volume; // Use volume from settings
+
+    // --- FUNCTION: Native Web Speech ---
+    const startNativeSpeech = (text) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+
+        // Attempt to select "Microsoft Mark – English (United States)"
+        const voices = window.speechSynthesis.getVoices();
+        const markVoice = voices.find(v => v.name === "Microsoft Mark - English (United States)");
+        if (markVoice) utterance.voice = markVoice;
+
+        utterance.lang = markVoice?.lang || 'en-US';
+        utterance.pitch = ttsSettings.pitch;   // Adjustable pitch
+        utterance.rate = ttsSettings.rate;     // Adjustable rate
+        utterance.volume = ttsSettings.volume; // Adjustable volume
+
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    };
+
+    // --- SEQUENCE: Play chime then speak ---
+    chimeBefore.play().then(() => {
+        chimeBefore.onended = () => startNativeSpeech(alertMessage);
+    }).catch(err => {
+        console.warn("Chime failed, speaking immediately:", err);
+        startNativeSpeech(alertMessage);
+    });
+}
+
+
+
+scrollClientListBtn.addEventListener('click', () => {
+    // 1. First, ensure the 'Client List' view is the active view
+    switchView('client-list'); 
+
+    // 2. Scroll the target section into view smoothly
+    if (targetSection) {
+        targetSection.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start' // Aligns the top of the element to the top of the viewport
+        });
+    }
+    
+    // 3. (Mobile Only) Close the sidebar after clicking
+    if (window.innerWidth <= 600) {
+        setTimeout(toggleSidebar, 100); 
+    }
+});
+    
+
+// --- NEW HELPER FUNCTION: Generates HTML for Priority Status ---
+function getPriorityStatusHtml(client) {
+    const clientAge = parseInt(client.age, 10);
+    // Safety checks for case-insensitive 'yes'
+    const isPwd = client.pwd && client.pwd.toLowerCase() === 'yes';
+    const isPregnant = client.pregnant && client.pregnant.toLowerCase() === 'yes' && client.sex && client.sex.toLowerCase() === 'female';
+    const isSenior = !isNaN(clientAge) && clientAge >= 60;
+
+    let priorityStatus = '';
+    let style = 'color: #333;'; // Default color
+
+    // Logic to combine and prioritize statuses
+    if (isPwd) {
+        style = 'color: #c00000; font-weight: bold;'; // Bold Red for PWD priority
+        if (isPregnant) {
+            priorityStatus = 'PWD & Pregnant Woman';
+        } else if (isSenior) {
+            priorityStatus = 'Senior Citizen & PWD';
+        } else {
+            priorityStatus = 'PWD';
+        }
+    } else if (isPregnant) {
+        style = 'color: #c00000; font-weight: bold;';
+        if (isSenior) {
+            priorityStatus = 'Pregnant Woman & Senior Citizen';
+        } else {
+            priorityStatus = 'Pregnant Woman';
+        }
+    } else if (isSenior) {
+        style = 'color: #c00000; font-weight: bold;';
+        priorityStatus = 'Senior Citizen';
+    } else {
+        // No priority status found
+        return '';
+    }
+    
+    // Return the formatted HTML line
+    return `
+        <strong>Priority Status:</strong> <span style="${style}">${priorityStatus}</span> <br>
+    `;
+}
+
+// -----------------------------------------------------------------
+
+// --- SweetAlert Notification Function (UPDATED) ---
+function showNewClientSwal(client) {
+    const clientName = `${client.firstName || ''} ${client.lastName || ''}`.trim();
+    
+    // CALL THE NEW HELPER FUNCTION to get the priority HTML
+    const priorityHtml = getPriorityStatusHtml(client); 
+
+    Swal.fire({
+        toast: true,
+        position: 'top-end', // Displays in the top right corner
+        icon: 'info',
+        title: 'New Client Logged In',
+        html: `
+            <div style="text-align: left; font-size: 1.1em;">
+                <strong>Client:</strong> ${clientName} <br>
+                ${priorityHtml}
+                <strong>Concerned Section:</strong> ${client.section || 'N/A'} <br>
+                <strong>Concerned Official:</strong> ${client.personnel || 'N/A'}
+            </div>
+        `,
+        showConfirmButton: false,
+        timer: 60000, // Disappears after 60 seconds
+        timerProgressBar: true,
+        // ** ADDED CUSTOM CLASS FOR WIDTH **
+        customClass: {
+            container: 'new-client-toast-container'
+        }
+    });
+}
+
+// ** You must add this CSS to your <style> block in dashboard-personnel.html **
+/* Make the toast wider and the title/icon area larger */
+const style = document.createElement('style');
+style.textContent = `
+.new-client-toast-container {
+    width: 300px !important; /* Adjust the overall width */
+}
+`;
+document.head.appendChild(style);
+
+    function switchView(view) {
+        navItems.forEach(x => x.classList.remove('active'));
+        document.getElementById(`nav-${view}`).classList.add('active');
+        for (const k in views) views[k].style.display = (k === view) ? 'block' : 'none';
+        if (view === 'client-list') {
+             if (allClients.length === 0) loadClientList(false);
+             else applyFilterAndRender(false); 
+        }
+    }
+    
+    // --- Search Filter Logic ---
+    function applyFilterAndRender(resetPage = true) {
+        if (resetPage) {
+            currentPage = 1; 
+        }
+        const filterText = currentFilter.toLowerCase();
+        
+        const filteredClients = allClients.filter(client => {
+            if (!filterText) return true; 
+            
+            const searchPool = [
+                client.firstName, 
+                client.lastName, 
+                client.purpose, 
+                client.section, 
+                client.personnel,
+                client.address
+            ].join(' ').toLowerCase();
+
+            return searchPool.includes(filterText);
+        });
+        
+        renderClients(filteredClients);
+    }
+    
+    // Event listener for search input
+    searchInput.addEventListener('input', (e) => {
+        currentFilter = e.target.value;
+        applyFilterAndRender(); 
+    });
+
+
+    // ===============================================
+    // === UPDATED: LOAD CLIENT LIST AND DASHBOARD STATS ===
+    // ===============================================
+
+    async function loadClientList(isAutomatic = false) { 
+        if (!isAutomatic) {
+             clientListContainer.innerHTML = "<div style='text-align:center;'>Loading Client Data...</div>";
+        }
+       
+        if (!isAutomatic) {
+            syncBtn.textContent = 'Syncing...';
+            syncBtn.classList.add('loading');
+        }
+        
+        let success = true;
+        let fetchedClients = [];
+
+        try {
+            const res = await fetch(GAS_URL + '?action=list_clients');
+            fetchedClients = await res.json();
+        } catch(error) {
+            fetchedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+            console.error("Failed to fetch from server, falling back to local storage.", error);
+            if (!isAutomatic) { 
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Data Load Warning',
+                    text: 'Could not connect to the server. Displaying cached (local) data.',
+                    confirmButtonColor: '#f59e0b'
+                });
+            }
+            success = false;
+        } finally {
+             // Stop loading state
+            if (!isAutomatic) {
+                syncBtn.textContent = 'Sync List';
+                syncBtn.classList.remove('loading');
+            } else {
+                 if(success) {
+                     const originalText = 'Sync List';
+                     syncBtn.textContent = 'Synced!';
+                     setTimeout(() => syncBtn.textContent = originalText, 1000);
+                 }
+            }
+        }
+        
+        // --- NEW CLIENT DETECTION LOGIC ---
+        const existingClientIDs = new Set(allClients.map(c => c.timestamp)); 
+        
+        fetchedClients.sort((a, b) => {
+            const dateA = new Date(a.timestamp);
+            const dateB = new Date(b.timestamp);
+            return dateB - dateA; 
+        });
+
+        const newestClient = fetchedClients[0];
+
+            // Inside loadClientList function:
+            if (newestClient && !initialLoad && !existingClientIDs.has(newestClient.timestamp)) {
+                
+                // Pass newestClient.ring as the 7th argument
+                speakNewClientAlert(
+                    newestClient.section, 
+                    newestClient.personnel, 
+                    newestClient.pwd, 
+                    newestClient.pregnant, 
+                    newestClient.sex, 
+                    newestClient.age,
+                    newestClient.ring // Ensure this property is passed here
+                );
+
+                // 2. SweetAlert Notification remains unchanged
+                showNewClientSwal(newestClient);
+            }
+        
+        // Update the main list and toggle the initial load flag
+        allClients = fetchedClients;
+        localStorage.setItem('clients', JSON.stringify(allClients)); // Update local cache
+        initialLoad = false;
+        // ------------------------------------
+
+        // === NEW: COMPUTE AND RENDER DASHBOARD STATS ===
+        const stats = computeDashboardStats(allClients);
+        renderDashboardCards(stats);
+        // ==============================================
+
+        applyFilterAndRender(false); // Do not reset page on sync to maintain user's current view
+    }
+
+
+    // ===============================================
+    // === UPDATED FUNCTION: COMPUTE DASHBOARD STATS ===
+    // ===============================================
+    function computeDashboardStats(clients, targetMonth, targetYear) {
+        const now = new Date();
+        const todayStr = now.toLocaleDateString('en-US'); 
+        
+        // Determine the target month and year for monthly stats/reports
+        const currentMonth = targetMonth !== undefined ? targetMonth : now.getMonth();
+        const currentYear = targetYear !== undefined ? targetYear : now.getFullYear();
+        
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const yesterdayStr = yesterday.toLocaleDateString('en-US');
+        
+        // For previous month comparison (e.g., trend analysis)
+        const lastMonth = new Date(now);
+        lastMonth.setMonth(now.getMonth() - 1);
+        const lastMonthYear = lastMonth.getFullYear();
+        const lastMonthMonth = lastMonth.getMonth();
+
+        let dailyCount = 0;
+        let yesterdayCount = 0;
+        let monthlyCount = 0;
+        let lastMonthCount = 0;
+        let maleCount = 0;
+        let femaleCount = 0;
+        let pwdCount = 0;
+        let pregnantCount = 0; 
+        let seniorCount = 0; 
+        let personnelTally = {};
+        let monthlyClients = []; // Added for report generation
+
+        clients.forEach(client => {
+            // Ensure client.timestamp is treated as a valid Date object
+            let clientDate;
+            try {
+                // Handle ISO string from Google Apps Script if present
+                clientDate = new Date(client.timestamp);
+                if (isNaN(clientDate)) {
+                    // Fallback if timestamp is invalid
+                    clientDate = new Date(); 
+                }
+            } catch {
+                 clientDate = new Date();
+            }
+
+            const clientDateStr = clientDate.toLocaleDateString('en-US');
+            const clientMonth = clientDate.getMonth();
+            const clientYear = clientDate.getFullYear();
+            
+            // Age conversion for senior check
+            const clientAge = parseInt(client.age, 10);
+
+
+            // 1. Daily Count (Only needed for dashboard view, not monthly report logic)
+            if (targetMonth === undefined && clientDateStr === todayStr) {
+                dailyCount++;
+            }
+            // 1. Yesterday Count (for trend) (Only needed for dashboard view)
+            if (targetMonth === undefined && clientDateStr === yesterdayStr) {
+                yesterdayCount++;
+            }
+            
+            // 2. Monthly Count (Target Month/Current Month)
+            if (clientMonth === currentMonth && clientYear === currentYear) {
+                monthlyCount++;
+                monthlyClients.push(client); // Collect for report
+
+                // 3. Gender Split
+                if (client.sex && client.sex.toLowerCase() === 'male') {
+                    maleCount++;
+                } else if (client.sex && client.sex.toLowerCase() === 'female') {
+                    femaleCount++;
+                }
+
+                // 4. PWD Count
+                if (client.pwd && client.pwd.toLowerCase() === 'yes') {
+                    pwdCount++;
+                }
+                
+                // 5. Pregnant Count
+                if (client.pregnant && client.pregnant.toLowerCase() === 'yes' && client.sex.toLowerCase() === 'female') {
+                    pregnantCount++;
+                }
+                
+                // 6. Senior Citizen Count (NEW)
+                if (!isNaN(clientAge) && clientAge >= 60) {
+                    seniorCount++;
+                }
+                
+                // 7. Personnel Tally
+                const official = client.personnel || 'Unassigned';
+                personnelTally[official] = (personnelTally[official] || 0) + 1;
+            }
+            
+            // 2. Monthly Count (Last Month - for trend) (Only needed for dashboard view)
+            if (targetMonth === undefined && clientMonth === lastMonthMonth && clientYear === lastMonthYear) {
+                lastMonthCount++;
+            }
+        });
+
+        // Calculate Trends (Only calculate if it's the dashboard's current month view)
+        const dailyTrend = targetMonth === undefined ? (yesterdayCount > 0 
+            ? ((dailyCount - yesterdayCount) / yesterdayCount) * 100 
+            : (dailyCount > 0 ? 100 : 0)) : 0;
+            
+        const monthlyTrend = targetMonth === undefined ? (lastMonthCount > 0 
+            ? ((monthlyCount - lastMonthCount) / lastMonthCount) * 100 
+            : (monthlyCount > 0 ? 100 : 0)) : 0;
+
+        // Sort Personnel Tally
+        const topOfficials = Object.entries(personnelTally)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5); // Get top 5
+            
+        // Get current month name for card title
+        const displayDate = targetMonth !== undefined 
+            ? new Date(currentYear, currentMonth, 1) 
+            : now;
+            
+        const currentMonthName = monthFormatter.format(displayDate);
+
+        return {
+            dailyCount,
+            monthlyCount,
+            maleCount,
+            femaleCount,
+            pwdCount,
+            pregnantCount, 
+            seniorCount, 
+            dailyTrend,
+            monthlyTrend,
+            topOfficials,
+            currentMonthName,
+            monthlyClients // Return clients for the report
+        };
+    }
+
+    // ===============================================
+    // === UPDATED FUNCTION: RENDER DASHBOARD CARDS ===
+    // ===============================================
+    function renderDashboardCards(stats) {
+        const formatNumber = (num) => new Intl.NumberFormat().format(num);
+        
+        // Helper to calculate percentage and determine trend icon/color based on 50% split (for gender)
+        const formatPercent = (value, total) => {
+            if (total === 0) return { percent: '0.0%', sign: 'neutral' };
+            const percentValue = (value / total) * 100;
+            const percent = percentValue.toFixed(1);
+            
+            let sign = 'neutral';
+            // Use 'up' for dominant gender (> 50%) or 'down' for subordinate gender (< 50%)
+            if (percentValue >= 50.1) {
+                sign = 'up';
+            } else if (percentValue < 49.9) {
+                sign = 'down';
+            }
+            
+            return { 
+                percent: `${percent}%`, 
+                sign: sign
+            };
+        };
+        
+        // Helper to render trend HTML (for Daily/Monthly vs. Past Period)
+        const renderTrend = (value, vsLabel, currentCount) => {
+            const trendValue = parseFloat(value.toFixed(1)); 
+            const trendClass = trendValue > 0 ? 'trend-up' : (trendValue < 0 ? 'trend-down' : 'trend-neutral');
+            const icon = trendValue > 0 ? 'fa-arrow-up' : (trendValue < 0 ? 'fa-arrow-down' : 'fa-minus');
+            const displayValue = Math.abs(trendValue) + '%';
+            
+            // If current count is 0, show a neutral 0%
+            if (currentCount === 0) {
+                 return `<span class="trend trend-neutral"><i class="fas fa-minus"></i> 0.0%</span><span class="trend-label">vs. ${vsLabel}</span>`;
+            }
+            
+            return `
+                <span class="trend ${trendClass}">
+                    <i class="fas ${icon}"></i> ${displayValue}
+                </span>
+                <span class="trend-label">vs. ${vsLabel}</span>
+            `;
+        };
+        
+        // --- A. Render Main Stats ---
+        
+        // MONTHLY TITLE UPDATE
+        const monthName = stats.currentMonthName;
+        monthlyTitle.textContent = `TOTAL Clients (${monthName})`;
+        maleMonthlyTitle.textContent = `Male Clients (${monthName})`;
+        femaleMonthlyTitle.textContent = `Female Clients (${monthName})`;
+        pwdMonthlyTitle.textContent = `PWD Clients (${monthName})`;
+        pregnantMonthlyTitle.textContent = `Pregnant Clients (${monthName})`;
+        seniorMonthlyTitle.textContent = `Senior Clients (${monthName})`; // <-- Update Senior Title
+        topofficialMonthlyTitle.textContent = `TOP Concerned Official (${monthName})`;
+
+
+        // Daily
+        document.querySelector('.stat-grid .stat-card:nth-child(1) .card-value').textContent = formatNumber(stats.dailyCount);
+        document.querySelector('.stat-grid .stat-card:nth-child(1) .card-footer').innerHTML = renderTrend(stats.dailyTrend, 'yesterday', stats.dailyCount);
+
+        // Monthly
+        document.querySelector('.stat-grid .stat-card:nth-child(2) .card-value').textContent = formatNumber(stats.monthlyCount);
+        document.querySelector('.stat-grid .stat-card:nth-child(2) .card-footer').innerHTML = renderTrend(stats.monthlyTrend, 'last month', stats.monthlyCount);
+        
+        // Gender Split Percentages
+        const malePercent = formatPercent(stats.maleCount, stats.monthlyCount);
+        const femalePercent = formatPercent(stats.femaleCount, stats.monthlyCount);
+
+        // Male
+        document.querySelector('.stat-grid .stat-card:nth-child(3) .card-value').textContent = formatNumber(stats.maleCount);
+        document.querySelector('.stat-grid .stat-card:nth-child(3) .card-footer').innerHTML = `
+            <span class="trend ${malePercent.sign === 'up' ? 'trend-up' : (malePercent.sign === 'down' ? 'trend-down' : 'trend-neutral')}">
+                <i class="fas ${malePercent.sign === 'up' ? 'fa-arrow-up' : (malePercent.sign === 'down' ? 'fa-arrow-down' : 'fa-minus')}"></i> ${malePercent.percent}
+            </span>
+            <span class="trend-label">of Monthly Total</span>
+        `;
+
+        // Female
+        document.querySelector('.stat-grid .stat-card:nth-child(4) .card-value').textContent = formatNumber(stats.femaleCount);
+        document.querySelector('.stat-grid .stat-card:nth-child(4) .card-footer').innerHTML = `
+            <span class="trend ${femalePercent.sign === 'up' ? 'trend-up' : (femalePercent.sign === 'down' ? 'trend-down' : 'trend-neutral')}">
+                <i class="fas ${femalePercent.sign === 'up' ? 'fa-arrow-up' : (femalePercent.sign === 'down' ? 'fa-arrow-down' : 'fa-minus')}"></i> ${femalePercent.percent}
+            </span>
+            <span class="trend-label">of Monthly Total</span>
+        `;
+
+        // PWD
+        document.querySelector('.stat-grid .stat-card:nth-child(5) .card-value').textContent = formatNumber(stats.pwdCount);
+        document.querySelector('.stat-grid .stat-card:nth-child(5) .card-footer').innerHTML = `
+            <span class="trend trend-neutral">
+                <i class="fas fa-wheelchair"></i>
+            </span>
+            <span class="trend-label">Monthly PWD Count</span>
+        `;
+        
+        // Pregnant (Card 6)
+        document.querySelector('.stat-grid .stat-card:nth-child(6) .card-value').textContent = formatNumber(stats.pregnantCount);
+        document.querySelector('.stat-grid .stat-card:nth-child(6) .card-footer').innerHTML = `
+            <span class="trend trend-neutral">
+                <i class="fas fa-baby"></i>
+            </span>
+            <span class="trend-label">Monthly Pregnant Count</span>
+        `;
+        
+        // Senior Citizen (Card 7) - NEWLY ADDED
+        document.querySelector('.stat-grid .stat-card:nth-child(7) .card-value').textContent = formatNumber(stats.seniorCount);
+        document.querySelector('.stat-grid .stat-card:nth-child(7) .card-footer').innerHTML = `
+            <span class="trend trend-neutral">
+                <i class="fas fa-hands-helping"></i>
+            </span>
+            <span class="trend-label">Monthly Senior Count</span>
+        `;
+
+
+        // --- B. Render Top Officials List ---
+        const officialListUl = document.querySelector('.top-official-card .official-list');
+        officialListUl.innerHTML = ''; // Clear existing content
+
+        if (stats.topOfficials.length === 0) {
+            officialListUl.innerHTML = '<li class="official-item">No client visits recorded this month.</li>';
+            return;
+        }
+
+        stats.topOfficials.forEach(([name, count], index) => {
+            let medalHtml = '';
+            // Assign medal icons to top 3
+            if (index === 0) medalHtml = '<i class="fas fa-medal" style="color: gold; margin-right: 8px;"></i>';
+            else if (index === 1) medalHtml = '<i class="fas fa-medal" style="color: silver; margin-right: 8px;"></i>';
+            else if (index === 2) medalHtml = '<i class="fas fa-medal" style="color: #cd7f32; margin-right: 8px;"></i>';
+            else medalHtml = ''; 
+
+            const li = document.createElement('li');
+            li.classList.add('official-item');
+            li.innerHTML = `
+                <span class="official-name">${medalHtml} ${name}</span>
+                <span class="official-count">${formatNumber(count)}</span>
+            `;
+            officialListUl.appendChild(li);
+        });
+    }
+
+    // Function to render the pagination controls
+    function renderPagination(rows, container) {
+        const totalPages = Math.ceil(rows.length / rowsPerPage);
+        if (totalPages <= 1) return; 
+
+        const paginationDiv = document.createElement('div');
+        paginationDiv.classList.add('pagination-controls');
+
+        const prevBtn = document.createElement('button');
+        prevBtn.textContent = 'Previous';
+        prevBtn.classList.add('secondary');
+        prevBtn.disabled = currentPage === 1;
+        prevBtn.onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                applyFilterAndRender(false); 
+            }
+        };
+        
+        const pageInfo = document.createElement('span');
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+
+        const nextBtn = document.createElement('button');
+        nextBtn.textContent = 'Next';
+        nextBtn.classList.add('secondary');
+        nextBtn.disabled = currentPage === totalPages;
+        nextBtn.onclick = () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                applyFilterAndRender(false); 
+            }
+        };
+
+        paginationDiv.appendChild(prevBtn);
+        paginationDiv.appendChild(pageInfo);
+        paginationDiv.appendChild(nextBtn);
+        container.appendChild(paginationDiv);
+    }
+
+    // Toggle Detail Row
+    function toggleDetails(button) {
+        const tr = button.closest('tr');
+        const nextRow = tr.nextElementSibling; 
+        
+        if (nextRow && nextRow.classList.contains('detail-row')) {
+            const isHidden = nextRow.style.display === 'none' || nextRow.style.display === '';
+            nextRow.style.display = isHidden ? 'table-row' : 'none';
+            button.textContent = isHidden ? 'Hide Details' : 'View Details';
+        }
+    }
+
+// 🔊 GLOBAL VARIABLES
+const chime = new Audio('assets/chime.m4a');
+let lastAnnouncedHour = -1;
+let isSpeaking = false;
+let selectedVoice = null; // Variable to hold the selected voice object
+
+// 🖱️ Unlock audio after first interaction (browser requirement)
+document.addEventListener('click', () => {
+    // Attempt to play and immediately pause the audio to unlock it
+    chime.play().then(() => chime.pause()).catch(() => {});
+}, { once: true });
+
+// 🎤 Load voices and set the desired voice
+function loadAndSetVoice() {
+    const voices = window.speechSynthesis.getVoices();
+    const desiredVoiceName = 'Microsoft Mark - English (United States)';
+
+    selectedVoice = voices.find(voice => 
+        voice.name === desiredVoiceName && voice.lang === 'en-US'
+    );
+
+    if (selectedVoice) {
+        console.log("🎤 Selected Voice:", selectedVoice.name);
+    } else {
+        console.warn(`⚠️ Desired voice "${desiredVoiceName}" not found. Using default voice.`);
+    }
+}
+
+// Ensure voices are loaded before checking/setting
+if (window.speechSynthesis.onvoiceschanged !== undefined) {
+    // This event fires when voices are ready
+    window.speechSynthesis.onvoiceschanged = loadAndSetVoice;
+} else {
+    // Fallback/immediate attempt if event isn't supported or needed
+    loadAndSetVoice(); 
+}
+
+// 🗣️ Speak the current time
+function speakTime() {
+    const now = new Date();
+    let hours = now.getHours();
+    const minutes = now.getMinutes();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
+
+    const message = `Attention! The time is now ${hours}:${formattedMinutes} ${ampm}.`;
+    console.log("🗣️ Speaking:", message);
+
+    const utter = new SpeechSynthesisUtterance(message);
+    
+    // Apply settings
+    utter.lang = 'en-US'; 
+    utter.rate = 1; // Normal speed (as requested)
+    utter.pitch = 1; 
+    utter.volume = 1; 
+    
+    // Assign the pre-selected voice
+    if (selectedVoice) {
+        utter.voice = selectedVoice;
+    }
+
+    utter.onstart = () => { isSpeaking = true; };
+    utter.onend = () => {
+        console.log("✅ Finished speaking.");
+        isSpeaking = false;
+    };
+
+    window.speechSynthesis.speak(utter);
+}
+
+// 🔔 Play chime then speak (no overlap)
+function playChimeAndSpeak() {
+    if (isSpeaking || window.speechSynthesis.speaking) {
+        console.warn("⏸️ Still speaking — skipping overlap.");
+        return;
+    }
+
+    // Reset chime to the beginning
+    chime.currentTime = 0;
+    console.log("🔔 Playing chime...");
+    
+    // Create a temporary handler for when the chime ends
+    chime.onended = () => {
+        console.log("🎵 Chime ended. Now speaking...");
+        // Ensure the handler is removed after firing if needed, 
+        // though standard browser behavior often handles this for 'onended'
+        speakTime();
+    };
+    
+    chime.play()
+        .catch(err => {
+            console.warn("⚠️ Chime play error:", err);
+            speakTime(); // fallback if chime fails
+        });
+}
+
+// ⏰ Automatic hourly announcements
+function setupHourlyAnnouncements() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMinute = now.getMinutes();
+    const currentSecond = now.getSeconds();
+
+    // Trigger only at the top of the hour (minute 0, seconds 0-4)
+    if (currentHour !== lastAnnouncedHour && currentMinute === 0 && currentSecond < 5) {
+        if (!window.speechSynthesis.speaking && !isSpeaking) {
+            playChimeAndSpeak();
+            lastAnnouncedHour = currentHour;
+        }
+    }
+
+    // Check again in 1 second
+    setTimeout(setupHourlyAnnouncements, 1000);
+}
+
+// 🎛️ Manual test button
+// Assumes you have a button with id="testChimeBtn" in your HTML
+const testButton = document.getElementById("testChimeBtn");
+if (testButton) {
+    testButton.addEventListener("click", () => {
+        playChimeAndSpeak();
+    });
+} else {
+    console.warn("Element with ID 'testChimeBtn' not found. Manual test button disabled.");
+}
+
+// ▶️ Start loop
+// Use a small delay to ensure event listeners and voice loading have a moment
+setTimeout(setupHourlyAnnouncements, 500);
+
+    // Client List Renderer
+function renderClients(rows) {
+    if (!rows.length) {
+        clientListContainer.innerHTML = currentFilter ? 'No clients found matching your search.' : 'No records yet.';
+        return;
+    }
+
+    // Calculate start and end indices for the current page
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const rowsToDisplay = rows.slice(startIndex, endIndex);
+
+
+    const table = document.createElement('table');
+    table.innerHTML = '<thead><tr><th>Name</th><th>Concerned Section/Office</th><th>Concerned Official</th><th>Purpose (Preview)</th><th>Time Logged</th><th>Action</th></tr></thead>';
+    const tbody = document.createElement('tbody');
+
+    rowsToDisplay.forEach(r => {
+
+        // --- 1. TIMESTAMP FORMATTING FIX ---
+        const rawTimestamp = r.timestamp || '';
+        let formattedTimestamp = rawTimestamp;
+
+        // Detect and format ISO 8601 strings (like '2025-09-25T07:31:30.000Z')
+        if (rawTimestamp && rawTimestamp.includes('T') && rawTimestamp.includes('Z')) {
+            try {
+                const dateObj = new Date(rawTimestamp);
+                // Note: dateOptions must be defined globally/in scope
+                formattedTimestamp = dateObj.toLocaleDateString('en-US', dateOptions); 
+            } catch (e) {
+                // Fallback to raw timestamp
+            }
+        }
+        // ------------------------------------
+
+        // --- 2. PURPOSE TRUNCATION (for main view) ---
+        const fullPurpose = r.purpose || 'N/A';
+        let displayedPurpose = fullPurpose;
+        const words = fullPurpose.split(/\s+/);
+        if (words.length > 5) { // Truncate to 5 words for a cleaner main table
+            displayedPurpose = words.slice(0, 5).join(' ') + '...';
+        }
+        const purposeCell = `<td title="${fullPurpose}">${displayedPurpose}</td>`;
+        // ------------------------------------
+
+        // MAIN ROW
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${r.lastName || ''}, ${r.firstName || ''}</td>
+            <td>${r.section || ''}</td>
+            <td>${r.personnel || ''}</td>
+            ${purposeCell}
+            <td class="muted">${formattedTimestamp || ''}</td>
+            <td><button class="secondary" onclick="toggleDetails(this)">View Details</button></td>
+        `;
+        tbody.appendChild(tr);
+
+        // DETAIL ROW (Initially hidden)
+        const detailTr = document.createElement('tr');
+        detailTr.classList.add('detail-row');
+        detailTr.style.display = 'none';
+
+        // Conditional rendering for the 'Pregnant' status based on 'Sex'
+        const pregnantStatusHtml = (r.sex && r.sex.toLowerCase() === 'female') 
+            ? `&bull; <strong>Pregnant:</strong> ${r.pregnant || 'N/A'}` 
+            : '';
+        
+        // NEW: Check for Senior Citizen status (Age >= 60)
+        const age = parseInt(r.age, 10);
+        const isSenior = !isNaN(age) && age >= 60;
+        const seniorHtml = isSenior ? `&bull; <strong>Senior Citizen:</strong> Yes` : `&bull; <strong>Senior Citizen:</strong> No`;
+        
+
+        detailTr.innerHTML = `
+            <td colspan="6">
+                <div class="detail-content">
+                    <strong>Full Address:</strong> ${r.address || 'N/A'} <br>
+                    <strong>Sex:</strong> ${r.sex || 'N/A'} &bull; 
+                    <strong>PWD:</strong> ${r.pwd || 'N/A'} ${pregnantStatusHtml} ${seniorHtml} <br>
+                    <strong>Full Purpose:</strong> ${r.purpose || 'N/A'} <br>
+                    <strong>Age:</strong> ${r.age || 'N/A'} &bull; 
+                    <strong>Mobile:</strong> ${r.mobile || 'N/A'}
+                </div>
+            </td>
+        `;
+        tbody.appendChild(detailTr);
+    });
+
+    table.appendChild(tbody);
+    clientListContainer.innerHTML = '';
+    clientListContainer.appendChild(table);
+
+    renderPagination(rows, clientListContainer);
+}
+    
+    // Expose toggleDetails globally for the onclick attribute
+    window.toggleDetails = toggleDetails;
+    
+    syncBtn.addEventListener('click', () => {
+        currentFilter = ''; 
+        searchInput.value = '';
+        loadClientList(false); // Manual sync
+    }); 
+    
+    // Initial data load on startup
+    loadClientList(false); 
+
+    // --- Automatic Refresh Logic (10 seconds for faster "live" feel) ---
+    // 10000 milliseconds = 10 seconds
+    setInterval(() => {
+        if (currentFilter === '') {
+            loadClientList(true); // Automatic sync
+        }
+    }, 10000);
+    // --------------------------------------------------------
+
+    // Status Check 
+    async function checkConnection() {
+        try {
+            const res = await fetch(GAS_URL);
+            if (res.ok) {
+                statusContainer.innerHTML = '<div class="muted">Status:</div><div style="color:#22c55e">Connected</div>';
+            } else {
+                throw new Error('Server not reachable');
+            }
+        } catch {
+            statusContainer.innerHTML = '<div class="muted">Status:</div><div style="color:#ef4444">Not Connected</div>';
+        }
+    }
+    checkConnection();
+
+
+    // Real-time Date and Time 
+    function updateDateTime() {
+        const now = new Date();
+
+        const timeOptions = { hour: 'numeric', minute: 'numeric', second: 'numeric', hour12: true };
+        const timeString = now.toLocaleTimeString('en-US', timeOptions);
+        
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const dateString = now.toLocaleDateString('en-US', dateOptions);
+
+        realtimeDatetime.innerHTML = `
+            <span class="time-display">${timeString}</span>
+            <span class="date-display">${dateString}</span>
+        `;
+    }
+
+    setInterval(updateDateTime, 1000);
+    updateDateTime();
+    
+    
+    // --- START: REPORTS MODAL AND GENERATION LOGIC ---
+    
+    const reportsModal = document.getElementById('reportsModal');
+    const navReportsBtn = document.getElementById('nav-reports');
+    const reportMonthSelect = document.getElementById('report-month');
+    const reportYearSelect = document.getElementById('report-year');
+    const generateReportBtn = document.getElementById('generateReportBtn');
+    
+    // Function to populate the month and year selectors
+    function populateReportFilters() {
+        const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+        
+        // Populate Months
+        reportMonthSelect.innerHTML = '';
+        monthNames.forEach((name, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = name;
+            reportMonthSelect.appendChild(option);
+        });
+        
+        // Populate Years (Current year and the last few years)
+        reportYearSelect.innerHTML = '';
+        const currentYear = new Date().getFullYear();
+        for (let y = currentYear; y >= currentYear - 3; y--) {
+            const option = document.createElement('option');
+            option.value = y;
+            option.textContent = y;
+            reportYearSelect.appendChild(option);
+        }
+        
+        // Set current month and year as default
+        reportMonthSelect.value = new Date().getMonth();
+        reportYearSelect.value = currentYear;
+    }
+    
+    // Open Modal Listener
+    navReportsBtn.addEventListener('click', () => {
+        populateReportFilters();
+        reportsModal.style.display = 'block';
+        if (window.innerWidth <= 600) {
+            setTimeout(toggleSidebar, 100); 
+        }
+    });
+    
+    // Close modal on outside click
+    window.onclick = function(event) {
+      if (event.target == reportsModal) {
+        reportsModal.style.display = "none";
+      }
+    }
+    
+    // Generate Report Button Handler
+    generateReportBtn.addEventListener('click', () => {
+        const month = parseInt(reportMonthSelect.value);
+        const year = parseInt(reportYearSelect.value);
+        
+        if (isNaN(month) || isNaN(year)) {
+            Swal.fire('Error', 'Please select a valid month and year.', 'error');
+            return;
+        }
+        
+        // 1. Filter the entire client list based on the selected month/year
+        const reportStats = computeDashboardStats(allClients, month, year);
+        const clientsForReport = reportStats.monthlyClients;
+        const reportTitle = reportStats.currentMonthName;
+        
+        if (clientsForReport.length === 0) {
+             Swal.fire('No Data', `No clients logged in during ${reportTitle}.`, 'info');
+             return;
+        }
+        
+        // 2. Generate HTML content for the report
+        const reportHtml = generateReportHTML(reportStats, clientsForReport, reportTitle);
+        
+        // 3. Open a new window for preview/printing
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(reportHtml);
+        printWindow.document.close();
+        
+        // Close the modal
+        reportsModal.style.display = 'none';
+    });
+    
+    
+// Function to generate the full printable HTML report
+function generateReportHTML(stats, clients, reportTitle) {
+    const clientTableRows = clients.map(client => {
+        let reportDate;
+        try {
+            reportDate = new Date(client.timestamp).toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch {
+            reportDate = client.timestamp || 'N/A';
+        }
+
+        const clientName = `${client.lastName || ''}, ${client.firstName || ''}`.trim();
+        const isPwd = (client.pwd || '').toLowerCase() === 'yes' ? 'Yes' : 'No';
+        const isPregnant =
+            (client.sex || '').toLowerCase() === 'female' &&
+            (client.pregnant || '').toLowerCase() === 'yes' ? 'Yes' : 'No';
+        const isSenior = parseInt(client.age, 10) >= 60 ? 'Yes' : 'No';
+
+        return `
+            <tr>
+                <td>${reportDate}</td>
+                <td>${clientName || 'N/A'}</td>
+                <td>${client.mobile || 'N/A'}</td>
+                <td>${client.sex || 'N/A'}</td>
+                <td>${client.age || 'N/A'}</td>
+                <td>${client.address || 'N/A'}</td>
+                <td>${client.section || 'N/A'}</td>
+                <td>${client.personnel || 'N/A'}</td>
+                <td>${isPwd}</td>
+                <td>${isSenior}</td>
+                <td>${isPregnant}</td>
+                <td>${client.purpose || 'N/A'}</td>
+            </tr>
+        `;
+    }).join('');
+
+    return `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Monthly Client Report - ${reportTitle}</title>
+            <style>
+                body {
+                    /* Remove initial margin to rely completely on print margins */
+                    font-family: "Arial", sans-serif;
+                    margin: 0; 
+                    padding: 0;
+                    font-size: 12px;
+                    color: #000;
+                }
+                
+                /* Add padding back to the main content area */
+                body > table:first-of-type, body > .report-title, body > .summary, body > table:last-of-type, body > p {
+                    padding-left: 10px;
+                    padding-right: 10px;
+                }
+                
+                .signature-line {
+                    margin-top: 50px;
+                    font-size: 13px;
+                }
+
+                .header-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 15px;
+                }
+
+                .header-table td {
+                    vertical-align: middle;
+                    border: none;
+                }
+
+                .report-title {
+                    text-align: center;
+                    margin: 10px 0 20px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    text-transform: uppercase;
+                    border-top: 2px solid #2e7d32;
+                    border-bottom: 2px solid #2e7d32;
+                    padding: 8px 0;
+                    color: #1b5e20;
+                }
+
+                .summary {
+                    border: 1px solid #999;
+                    padding: 12px 15px;
+                    border-radius: 8px;
+                    background: #f9f9f9;
+                    margin-bottom: 20px;
+                }
+
+                .summary h4 {
+                    margin: 0 0 10px;
+                    font-size: 14px;
+                    text-decoration: underline;
+                    color: #1b5e20;
+                }
+
+                .summary p {
+                    margin: 5px 0;
+                    font-size: 13px;
+                }
+
+                .summary strong {
+                    display: inline-block;
+                    width: 280px;
+                }
+
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-top: 10px;
+                }
+
+                th, td {
+                    border: 1px solid #000;
+                    padding: 6px 8px;
+                    text-align: left;
+                    vertical-align: top;
+                    font-size: 11px;
+                    word-break: break-word;
+                }
+
+                th {
+                    background-color: #e8f5e9;
+                    font-weight: bold;
+                    text-align: center;
+                    color: #1b5e20;
+                }
+
+                tr:nth-child(even) {
+                    background-color: #fafafa;
+                }
+
+                /* Force LANDSCAPE printing with MINIMUM (0) margin */
+                @page {
+                    size: A4 landscape;
+                    margin: 0; 
+                }
+
+                @media print {
+                    body { margin: 0; }
+                    table { table-layout: fixed; width: 100%; }
+                    td, th { word-wrap: break-word; }
+                }
+            </style>
+        </head>
+        <body onload="window.print()">
+
+            <table class="header-table">
+                <tr>
+                    <td style="width: 80px;">
+                        <img src="assets/denrlogo.png" alt="DENR Logo" style="height: 70px;" />
+                    </td>
+                    <td style="text-align: left; font-size: 11px; line-height: 1.2;">
+                        <div><strong>Republic of the Philippines</strong></div>
+                        <div><strong>Department of Environment and Natural Resources</strong></div>
+                        <div><strong>Community Environment and Natural Resources Office</strong></div>
+                        <div>Province of Quirino</div>
+                        <div>Andres Bonifacio, Diffun, Quirino, 3401</div>
+                        <div>Email Address: <em>denr.diffun@gmail.com</em></div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="report-title">
+                CLIENTS LOGGED WITHIN THE MONTH OF ${reportTitle.toUpperCase()}
+            </div>
+
+            <div class="summary">
+                <h4>MONTHLY SUMMARY</h4>
+                <p><strong>Total Number of Clients:</strong> ${stats.monthlyCount}</p>
+                <p><strong>Male Clients:</strong> ${stats.maleCount || 0}</p>
+                <p><strong>Female Clients:</strong> ${stats.femaleCount || 0}</p>
+                <p><strong>PWD Clients:</strong> ${stats.pwdCount}</p>
+                <p><strong>Senior Citizen Clients (Age ≥ 60):</strong> ${stats.seniorCount}</p>
+                <p><strong>Pregnant Woman Clients:</strong> ${stats.pregnantCount}</p>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Time Logged</th>
+                        <th>Client Name</th>
+                        <th>Mobile Number</th>
+                        <th>Sex</th>
+                        <th>Age</th>
+                        <th>Address</th>
+                        <th>Concerned Section/Office</th>
+                        <th>Concerned Official</th>
+                        <th>PWD</th>
+                        <th>Senior</th>
+                        <th>Pregnant</th>
+                        <th>Purpose</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${clientTableRows || `<tr><td colspan="11" style="text-align:center;">No records found for this month.</td></tr>`}
+                </tbody>
+            </table>
+            <p class="signature-line">
+                Prepared by: _______________________________
+            </p>
+        </body>
+        </html>
+    `;
+}
+
+    
+    // --- END: REPORTS MODAL AND GENERATION LOGIC ---
+// --- SPEAK ALERT USING MICROSOFT MARK ---
+function speakAlert(message, options = {}) {
+    if (!('speechSynthesis' in window)) {
+        console.error('Web Speech API not supported in this browser.');
+        return;
+    }
+
+    const { rate = 1, pitch = 1, volume = 1 } = options;
+    const utterance = new SpeechSynthesisUtterance(message);
+
+    function assignVoiceAndSpeak(voicesList) {
+        const preferredVoice = voicesList.find(v => v.name.includes('Mark') && v.lang === 'en-US');
+        if (preferredVoice) {
+            utterance.voice = preferredVoice;
+            console.log(`Using voice: ${preferredVoice.name} (${preferredVoice.lang})`);
+        } else {
+            console.warn('Microsoft Mark (en-US) not found, using default voice.');
+        }
+
+        utterance.rate = rate;
+        utterance.pitch = pitch;
+        utterance.volume = volume;
+
+        window.speechSynthesis.cancel(); // Stop any ongoing speech
+        window.speechSynthesis.speak(utterance);
+    }
+
+    let voices = window.speechSynthesis.getVoices();
+    if (!voices.length) {
+        window.speechSynthesis.onvoiceschanged = () => {
+            voices = window.speechSynthesis.getVoices();
+            assignVoiceAndSpeak(voices);
+        };
+    } else {
+        assignVoiceAndSpeak(voices);
+    }
+}
+
+// --- USER GESTURE BUTTON ---
+document.getElementById('initialize-speech-btn').addEventListener('click', () => {
+    speakAlert('Welcome', {
+        rate: 0.7,
+        pitch: 1.0,
+        volume: 1.0
+    });
+});
+
+/* ===============================
+   DEVTOOLS PROTECTION (KIOSK MODE)
+   =============================== */
+
+(function () {
+    const threshold = 160;
+
+    function devToolsOpened() {
+        const widthDiff = window.outerWidth - window.innerWidth;
+        const heightDiff = window.outerHeight - window.innerHeight;
+        return widthDiff > threshold || heightDiff > threshold;
+    }
+
+    setInterval(() => {
+        if (devToolsOpened()) {
+            document.body.innerHTML = "";
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Security Alert',
+                text: 'Developer tools are not allowed on this system.',
+                confirmButtonColor: '#b91c1c',
+                allowOutsideClick: false,
+                allowEscapeKey: false
+            }).then(() => {
+                window.location.href = 'login.html'; // back to login
+            });
+        }
+    }, 500);
+})();
+
+});
+
+document.addEventListener('keydown', function (e) {
+    if (
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key)) ||
+        (e.ctrlKey && e.key === 'U')
+    ) {
+        e.preventDefault();
+        return false;
+    }
+});
+
+</script>
+</body>
+
+</html>
+

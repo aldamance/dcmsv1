@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Web Speech Synthesis — Voice Samples</title>
+  <style>
+    body{font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial; padding:24px; background:#f7fafc; color:#0f172a}
+    h1{font-size:20px;margin-bottom:8px}
+    .controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+    .card{background:white;padding:12px;border-radius:8px;box-shadow:0 6px 18px rgba(2,6,23,0.06);margin-bottom:12px}
+    select,input,button{padding:8px;border-radius:6px;border:1px solid #e2e8f0}
+    .voices{display:grid;grid-template-columns:1fr;gap:8px}
+    .voice-row{display:flex;align-items:center;gap:8px}
+    .meta{font-size:12px;color:#475569}
+    .small{font-size:13px;padding:6px}
+    .btn{cursor:pointer}
+    .play-all{background:#0ea5a4;color:white;border:none}
+    .sample-btn{background:#111827;color:white;border:none;padding:6px 10px;border-radius:6px}
+    label{font-size:13px}
+  </style>
+</head>
+<body>
+  <h1>Web Speech Synthesis — Voice Samples (HTML)</h1>
+  <p class="meta">Click <strong>Activate</strong> to allow audio. Then explore voices and presets. Works best in Chrome/Edge/Firefox (desktop).</p>
+
+  <div class="card controls">
+    <button id="activate" class="btn small">Activate (required)</button>
+    <select id="presetStyle" title="Preset style">
+      <option value="normal">Normal</option>
+      <option value="happy">Happy / Bright</option>
+      <option value="sad">Sad / Slow</option>
+      <option value="robot">Robot-ish</option>
+      <option value="deep">Deep</option>
+      <option value="fast">Fast</option>
+    </select>
+    <input id="sampleText" style="flex:1" value="Hello — this is a sample of the selected voice. Adjust rate and pitch or pick a preset." />
+    <button id="playSelected" class="sample-btn">Play Selected Voice</button>
+    <button id="playAll" class="play-all small">Play All Voices (preset)</button>
+  </div>
+
+  <div class="card">
+    <label for="voiceSelect">Choose voice (or click a row's Play):</label>
+    <select id="voiceSelect" style="width:100%;margin-top:8px"></select>
+    <div style="display:flex;gap:8px;margin-top:8px;align-items:center">
+      <label>Rate <input id="rate" type="range" min="0.5" max="2" step="0.1" value="1" /></label>
+      <label>Pitch <input id="pitch" type="range" min="0" max="2" step="0.1" value="1" /></label>
+      <label>Volume <input id="volume" type="range" min="0" max="1" step="0.1" value="1" /></label>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 8px 0">All detected voices</h3>
+    <div id="voicesList" class="voices"></div>
+  </div>
+
+  <script>
+    // --- Filipino Voice Auto-Selection Helper ---
+    function getFilipinoVoice() {
+      if (!voices) return null;
+      const tags = ['fil-PH', 'tl-PH', 'tl', 'fil'];
+      return voices.find(v => tags.includes(v.lang));
+    }
+
+    function trySelectFilipinoVoice() {
+      const filipino = getFilipinoVoice();
+      if (filipino) {
+        voiceSelect.value = filipino.voiceURI;
+      }
+    }
+    // Utility: wait for voices to be loaded
+    let voices = [];
+    const voiceSelect = document.getElementById('voiceSelect');
+    const voicesList = document.getElementById('voicesList');
+    const sampleTextInput = document.getElementById('sampleText');
+    const rateInput = document.getElementById('rate');
+    const pitchInput = document.getElementById('pitch');
+    const volumeInput = document.getElementById('volume');
+    const presetStyle = document.getElementById('presetStyle');
+
+    function activateAudio(){
+      // Speak a silent utterance to ensure browsers unlock audio on user gesture
+      const u = new SpeechSynthesisUtterance('');
+      window.speechSynthesis.speak(u);
+    }
+
+    document.getElementById('activate').addEventListener('click', ()=>{
+      activateAudio();
+      loadVoices();
+    });
+
+    function loadVoices(){
+      voices = window.speechSynthesis.getVoices();
+      if(!voices || voices.length === 0){
+        // Some browsers load voices asynchronously
+        window.speechSynthesis.onvoiceschanged = ()=>{
+          voices = window.speechSynthesis.getVoices();
+          renderVoices();
+        }
+        return;
+      }
+      renderVoices();
+    }
+
+    function renderVoices(){
+      voiceSelect.innerHTML = '';
+      voicesList.innerHTML = '';
+
+      // Auto-select Filipino voice when available
+      trySelectFilipinoVoice();
+      voices.forEach((v, idx)=>{
+        const opt = document.createElement('option');
+        opt.value = v.voiceURI;
+        opt.textContent = `${v.name} — ${v.lang}${v.default? ' — default':''}`;
+        voiceSelect.appendChild(opt);
+
+        // Create row in voices list
+        const row = document.createElement('div');
+        row.className = 'voice-row card';
+        row.style.justifyContent = 'space-between';
+
+        const left = document.createElement('div');
+        left.style.flex='1';
+        left.innerHTML = `<strong>${escapeHtml(v.name)}</strong><div class="meta">${v.lang} ${v.localService? '• local':'• remote'} ${v.default? '• default':''}</div>`;
+
+        const right = document.createElement('div');
+        right.style.display='flex';
+        right.style.gap='6px';
+        right.style.alignItems='center';
+
+        const playBtn = document.createElement('button');
+        playBtn.className='sample-btn';
+        playBtn.textContent='Play (normal)';
+        playBtn.addEventListener('click', ()=> speakWithPreset(v.voiceURI, 'normal'));
+
+        const altBtn = document.createElement('button');
+        altBtn.className='sample-btn';
+        altBtn.textContent='Play (happy)';
+        altBtn.addEventListener('click', ()=> speakWithPreset(v.voiceURI, 'happy'));
+
+        const copyBtn = document.createElement('button');
+        copyBtn.className='small';
+        copyBtn.textContent='Set as selected';
+        copyBtn.addEventListener('click', ()=>{ voiceSelect.value = v.voiceURI; });
+
+        right.appendChild(playBtn);
+        right.appendChild(altBtn);
+        right.appendChild(copyBtn);
+
+        row.appendChild(left);
+        row.appendChild(right);
+        voicesList.appendChild(row);
+      });
+    }
+
+    function speakWithPreset(voiceURI, style){
+      const text = sampleTextInput.value || 'Hello sample.';
+      let rate = parseFloat(rateInput.value);
+      let pitch = parseFloat(pitchInput.value);
+      let volume = parseFloat(volumeInput.value);
+
+      // style presets
+      switch(style){
+        case 'happy': rate *= 1.1; pitch *= 1.2; break;
+        case 'sad': rate *= 0.85; pitch *= 0.85; break;
+        case 'robot': rate = 0.95; pitch = 1.0; break;
+        case 'deep': pitch = Math.max(0, pitch - 0.6); break;
+        case 'fast': rate = Math.min(2, rate * 1.5); break;
+        default: break;
+      }
+      speak(voiceURI, text, rate, pitch, volume);
+    }
+
+    function speak(voiceURI, text, rate=1, pitch=1, volume=1){
+      if(!('speechSynthesis' in window)){
+        alert('SpeechSynthesis not supported in this browser.');
+        return;
+      }
+      // Cancel any ongoing speech
+      window.speechSynthesis.cancel();
+
+      const u = new SpeechSynthesisUtterance(text);
+      u.rate = rate;
+      u.pitch = pitch;
+      u.volume = volume;
+      // find voice by URI (stable) or name fallback
+      const v = voices.find(x=>x.voiceURI === voiceURI) || voices.find(x=>x.name === voiceURI);
+      if(v) u.voice = v;
+      window.speechSynthesis.speak(u);
+    }
+
+    document.getElementById('playSelected').addEventListener('click', ()=>{
+      const chosen = voiceSelect.value;
+      if(!chosen){ alert('Pick/activate voices first'); return; }
+      speakWithPreset(chosen, presetStyle.value);
+    });
+
+    // Play all detected voices in sequence using current preset
+    document.getElementById('playAll').addEventListener('click', async ()=>{
+      if(!voices || voices.length===0){ alert('No voices loaded. Click Activate.'); return; }
+      const style = presetStyle.value;
+      const text = sampleTextInput.value;
+      for(const v of voices){
+        // speak synchronously by awaiting 'end' event
+        await speakAsync(v.voiceURI, text, style);
+      }
+    });
+
+    function speakAsync(voiceURI, text, style){
+      return new Promise(resolve=>{
+        const u = new SpeechSynthesisUtterance(text);
+        // apply preset
+        let rate = parseFloat(rateInput.value);
+        let pitch = parseFloat(pitchInput.value);
+        let volume = parseFloat(volumeInput.value);
+        switch(style){
+          case 'happy': rate *= 1.1; pitch *= 1.2; break;
+          case 'sad': rate *= 0.85; pitch *= 0.85; break;
+          case 'robot': rate = 0.95; pitch = 1.0; break;
+          case 'deep': pitch = Math.max(0, pitch - 0.6); break;
+          case 'fast': rate = Math.min(2, rate * 1.5); break;
+        }
+        u.rate = rate; u.pitch = pitch; u.volume = volume;
+        const v = voices.find(x=>x.voiceURI === voiceURI) || voices.find(x=>x.name === voiceURI);
+        if(v) u.voice = v;
+        u.onend = ()=>{ setTimeout(resolve, 200); };
+        u.onerror = ()=>{ setTimeout(resolve, 200); };
+        window.speechSynthesis.speak(u);
+      });
+    }
+
+    // Helper: escape HTML
+    function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    // When page loads, try to populate voices (some browsers require a user gesture first)
+    window.addEventListener('load', ()=>{
+      // attempt once; user may need to click Activate for voices to appear
+      loadVoices();
+    });
+
+    // Also update when voiceschanged event fires
+    window.speechSynthesis.onvoiceschanged = ()=>{ loadVoices(); };
+
+  </script>
+  <script>
+    // --- External Filipino TTS API (VoiceRSS Example) ---
+    async function playFilipinoAPI(){
+      const text = sampleTextInput.value;
+      const apiKey = "YOUR_API_KEY_HERE"; // Replace with your free VoiceRSS key
+      const url = `https://api.voicerss.org/?key=${apiKey}&hl=tl-ph&src=${encodeURIComponent(text)}`;
+      const audio = new Audio(url);
+      audio.play();
+    }
+  </script>
+
+</body>
+</html>
