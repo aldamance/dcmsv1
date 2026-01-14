@@ -1562,14 +1562,14 @@ function speakTime() {
     hours = hours % 12 || 12;
     const formattedMinutes = minutes < 10 ? '0' + minutes : minutes;
 
-    const message = `Attention! The time is now ${hours}:${formattedMinutes} ${ampm}.`;
+    const message = ` The time is now ${hours}:${formattedMinutes} ${ampm}.`;
     console.log("🗣️ Speaking:", message);
 
     const utter = new SpeechSynthesisUtterance(message);
     
     // Apply settings
     utter.lang = 'en-US'; 
-    utter.rate = 1; // Normal speed (as requested)
+    utter.rate = .8; // Normal speed (as requested)
     utter.pitch = 1; 
     utter.volume = 1; 
     
@@ -2196,4 +2196,5 @@ document.addEventListener('keydown', function (e) {
 </body>
 
 </html>
+
 
