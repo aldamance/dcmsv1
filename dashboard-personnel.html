@@ -1569,7 +1569,7 @@ function speakTime() {
     
     // Apply settings
     utter.lang = 'en-US'; 
-    utter.rate = 0.55; // Normal speed (as requested)
+    utter.rate = 0.35; // Normal speed (as requested)
     utter.pitch = 1; 
     utter.volume = 1; 
     
@@ -2141,7 +2141,7 @@ function speakAlert(message, options = {}) {
 
 // --- USER GESTURE BUTTON ---
 document.getElementById('initialize-speech-btn').addEventListener('click', () => {
-    speakAlert('Welcome', {
+    speakAlert('', {
         rate: 0.7,
         pitch: 1.0,
         volume: 1.0
@@ -2196,6 +2196,7 @@ document.addEventListener('keydown', function (e) {
 </body>
 
 </html>
+
 
 
 
