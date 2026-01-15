@@ -2142,9 +2142,9 @@ function speakAlert(message, options = {}) {
 // --- USER GESTURE BUTTON ---
 document.getElementById('initialize-speech-btn').addEventListener('click', () => {
     speakAlert('', {
-        rate: 0.7,
+        rate: 0.5,
         pitch: 1.0,
-        volume: 1.0
+        volume: 0.4
     });
 });
 
@@ -2196,6 +2196,7 @@ document.addEventListener('keydown', function (e) {
 </body>
 
 </html>
+
 
 
 
